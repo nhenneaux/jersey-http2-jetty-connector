@@ -1,4 +1,4 @@
-package jaxrs.jetty.example;
+package org.glassfish.jersey.jetty.connector;
 
 import com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider;
 import org.eclipse.jetty.alpn.server.ALPNServerConnectionFactory;
@@ -29,12 +29,11 @@ import static org.junit.Assert.fail;
 /**
  * Test TLS encryption between a client and a server JAX-RS.
  */
-public class TlsTest {
+public class Http2Test {
 
     private static final int PORT = 2223;
 
     public static void main(String[] args) throws Exception {
-        int port = PORT;
         TlsSecurityConfiguration tlsSecurityConfiguration = new TlsSecurityConfiguration(
                 getKeyStore("jks-keystore-password".toCharArray(), "localhost.jks"),
                 "localhost",
@@ -42,7 +41,7 @@ public class TlsTest {
                 "TLSv1.2"
         );
         try (AutoCloseable ignored = jerseyServer(
-                port,
+                PORT,
                 tlsSecurityConfiguration,
                 DummyRestService.class)) {
             System.in.read();

@@ -1,4 +1,4 @@
-package jaxrs.jetty.example;
+package org.glassfish.jersey.jetty.connector;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
