@@ -73,8 +73,6 @@ import org.glassfish.jersey.internal.util.collection.ByteBufferInputStream;
 import org.glassfish.jersey.internal.util.collection.NonBlockingInputStream;
 import org.glassfish.jersey.message.internal.HeaderUtils;
 import org.glassfish.jersey.message.internal.Statuses;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
 import javax.ws.rs.ProcessingException;
@@ -146,12 +144,9 @@ import java.util.concurrent.atomic.AtomicReference;
  *
  * @author Arul Dhesiaseelan (aruld at acm.org)
  * @author Marek Potociar (marek.potociar at oracle.com)
- * @see org.glassfish.jersey.jetty.connector.JettyConnector
- * @see <a href="http://stackoverflow.com/questions/40280843/use-http-2-with-jax-rs-client">Use HTTP/2 with JAX-RS client</a>
+ * @see "org.glassfish.jersey.jetty.connector.JettyConnector"
  */
 public class JettyHttp2Connector implements Connector {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(JettyHttp2Connector.class);
 
     private final HttpClient client;
     private final CookieStore cookieStore;
@@ -298,19 +293,11 @@ public class JettyHttp2Connector implements Connector {
 
             final ClientResponse jerseyResponse = new ClientResponse(status, jerseyRequest);
             processResponseHeaders(jettyResponse.getHeaders(), jerseyResponse);
-            setEntityStream(jettyResponse, jerseyResponse);
+            jerseyResponse.setEntityStream(new HttpClientResponseInputStream(jettyResponse));
 
             return jerseyResponse;
         } catch (final Exception e) {
             throw new ProcessingException(e);
-        }
-    }
-
-    private void setEntityStream(ContentResponse jettyResponse, ClientResponse jerseyResponse) {
-        try {
-            jerseyResponse.setEntityStream(new HttpClientResponseInputStream(jettyResponse));
-        } catch (final IOException e) {
-            LOGGER.error("", e);
         }
     }
 
@@ -338,13 +325,15 @@ public class JettyHttp2Connector implements Connector {
             return null;
         }
 
-        try (final ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
-            clientRequest.setStreamProvider(contentLength -> outputStream);
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        clientRequest.setStreamProvider(contentLength -> outputStream);
+
+        try {
             clientRequest.writeEntity();
-            return new BytesContentProvider(outputStream.toByteArray());
         } catch (final IOException e) {
             throw new ProcessingException("Failed to write request entity.", e);
         }
+        return new BytesContentProvider(outputStream.toByteArray());
     }
 
     private ContentProvider getStreamProvider(final ClientRequest clientRequest) {
@@ -413,7 +402,7 @@ public class JettyHttp2Connector implements Connector {
 
     private static final class HttpClientResponseInputStream extends FilterInputStream {
 
-        HttpClientResponseInputStream(final ContentResponse jettyResponse) throws IOException {
+        HttpClientResponseInputStream(final ContentResponse jettyResponse) {
             super(getInputStream(jettyResponse));
         }
 
