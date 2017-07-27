@@ -275,9 +275,8 @@ public class JettyHttp2Connector implements Connector {
     @Override
     public ClientResponse apply(final ClientRequest jerseyRequest) {
         final Request jettyRequest = translateRequest(jerseyRequest);
-        final ContentProvider entity = getBytesProvider(jerseyRequest);
-        // This line has been moved below the previous line such that the writer interceptor can change the headers
         final Map<String, String> clientHeadersSnapshot = writeOutBoundHeaders(jerseyRequest.getHeaders(), jettyRequest);
+        final ContentProvider entity = getBytesProvider(jerseyRequest);
         if (entity != null) {
             jettyRequest.content(entity);
         }
@@ -285,7 +284,7 @@ public class JettyHttp2Connector implements Connector {
         try {
             final ContentResponse jettyResponse = jettyRequest.send();
             HeaderUtils.checkHeaderChanges(clientHeadersSnapshot, jerseyRequest.getHeaders(),
-                    JettyHttp2Connector.this.getClass().getName());
+                    JettyHttp2Connector.class.getName());
 
             final javax.ws.rs.core.Response.StatusType status = jettyResponse.getReason() == null
                     ? Statuses.from(jettyResponse.getStatus())
