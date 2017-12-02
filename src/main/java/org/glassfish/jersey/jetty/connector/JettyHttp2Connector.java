@@ -1,19 +1,19 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2013-2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013-2017 Oracle and/or its affiliates. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
  * and Distribution License("CDDL") (collectively, the "License").  You
  * may not use this file except in compliance with the License.  You can
  * obtain a copy of the License at
- * http://glassfish.java.net/public/CDDL+GPL_1_1.html
- * or packager/legal/LICENSE.txt.  See the License for the specific
+ * https://oss.oracle.com/licenses/CDDL+GPL-1.1
+ * or LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
  *
  * When distributing the software, include this License Header Notice in each
- * file and include the License file at packager/legal/LICENSE.txt.
+ * file and include the License file at LICENSE.txt.
  *
  * GPL Classpath Exception:
  * Oracle designates this particular file as subject to the "Classpath"
@@ -37,11 +37,9 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
+
 package org.glassfish.jersey.jetty.connector;
 
-import jersey.repackaged.com.google.common.util.concurrent.FutureCallback;
-import jersey.repackaged.com.google.common.util.concurrent.Futures;
-import jersey.repackaged.com.google.common.util.concurrent.SettableFuture;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.HttpClientTransport;
 import org.eclipse.jetty.client.HttpProxy;
@@ -57,7 +55,7 @@ import org.eclipse.jetty.client.util.BytesContentProvider;
 import org.eclipse.jetty.client.util.OutputStreamContentProvider;
 import org.eclipse.jetty.http.HttpField;
 import org.eclipse.jetty.http.HttpFields;
-import org.eclipse.jetty.http.HttpMethod;
+import org.eclipse.jetty.http.HttpHeader;
 import org.eclipse.jetty.http2.client.HTTP2Client;
 import org.eclipse.jetty.http2.client.http.HttpClientTransportOverHTTP2;
 import org.eclipse.jetty.util.HttpCookieStore;
@@ -92,6 +90,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -115,11 +114,12 @@ import java.util.concurrent.atomic.AtomicReference;
  * <li>{@link JettyClientProperties#PREEMPTIVE_BASIC_AUTHENTICATION}</li>
  * <li>{@link JettyClientProperties#DISABLE_COOKIES}</li>
  * </ul>
- * <p>
+ * <p/>
  * This transport supports both synchronous and asynchronous processing of client requests.
  * The following methods are supported: GET, POST, PUT, DELETE, HEAD, OPTIONS, TRACE, CONNECT and MOVE.
- * <p>
+ * <p/>
  * Typical usage:
+ * <p/>
  * <pre>
  * {@code
  * ClientConfig config = new ClientConfig();
@@ -176,7 +176,6 @@ public class JettyHttp2Connector implements Connector {
         }
 
         this.client = new HttpClient(transport, sslContextFactory);
-
 
         final Object connectTimeout = properties.get(ClientProperties.CONNECT_TIMEOUT);
         if (isGreaterThanZero(connectTimeout)) {
@@ -242,6 +241,8 @@ public class JettyHttp2Connector implements Connector {
     private static Map<String, String> writeOutBoundHeaders(final MultivaluedMap<String, Object> headers, final Request request) {
         final Map<String, String> stringHeaders = HeaderUtils.asStringHeadersSingleValue(headers);
 
+        // remove User-agent header set by Jetty; Jersey already sets this in its request (incl. Jetty version)
+        request.getHeaders().remove(HttpHeader.USER_AGENT);
         for (final Map.Entry<String, String> e : stringHeaders.entrySet()) {
             request.getHeaders().add(e.getKey(), e.getValue());
         }
@@ -249,7 +250,7 @@ public class JettyHttp2Connector implements Connector {
     }
 
     private boolean isGreaterThanZero(Object object) {
-        return object instanceof Integer && (Integer) object > 0;
+        return object != null && object instanceof Integer && (Integer) object > 0;
     }
 
     /**
@@ -275,8 +276,9 @@ public class JettyHttp2Connector implements Connector {
     @Override
     public ClientResponse apply(final ClientRequest jerseyRequest) {
         final Request jettyRequest = translateRequest(jerseyRequest);
-        final Map<String, String> clientHeadersSnapshot = writeOutBoundHeaders(jerseyRequest.getHeaders(), jettyRequest);
         final ContentProvider entity = getBytesProvider(jerseyRequest);
+        // This line has been moved below the previous line such that the writer interceptor can change the headers
+        final Map<String, String> clientHeadersSnapshot = writeOutBoundHeaders(jerseyRequest.getHeaders(), jettyRequest);
         if (entity != null) {
             jettyRequest.content(entity);
         }
@@ -284,7 +286,7 @@ public class JettyHttp2Connector implements Connector {
         try {
             final ContentResponse jettyResponse = jettyRequest.send();
             HeaderUtils.checkHeaderChanges(clientHeadersSnapshot, jerseyRequest.getHeaders(),
-                    JettyHttp2Connector.class.getName());
+                    JettyHttp2Connector.this.getClass().getName());
 
             final javax.ws.rs.core.Response.StatusType status = jettyResponse.getReason() == null
                     ? Statuses.from(jettyResponse.getStatus())
@@ -292,7 +294,9 @@ public class JettyHttp2Connector implements Connector {
 
             final ClientResponse jerseyResponse = new ClientResponse(status, jerseyRequest);
             processResponseHeaders(jettyResponse.getHeaders(), jerseyResponse);
+
             jerseyResponse.setEntityStream(new HttpClientResponseInputStream(jettyResponse));
+
 
             return jerseyResponse;
         } catch (final Exception e) {
@@ -301,17 +305,14 @@ public class JettyHttp2Connector implements Connector {
     }
 
     private Request translateRequest(final ClientRequest clientRequest) {
-        final HttpMethod method = HttpMethod.fromString(clientRequest.getMethod());
-        if (method == null) {
-            throw new ProcessingException(LocalizationMessages.METHOD_NOT_SUPPORTED(clientRequest.getMethod()));
-        }
+
         final URI uri = clientRequest.getUri();
         final Request request = client.newRequest(uri);
-        request.method(method);
+        request.method(clientRequest.getMethod());
 
         request.followRedirects(clientRequest.resolveProperty(ClientProperties.FOLLOW_REDIRECTS, true));
         final Object readTimeout = clientRequest.getConfiguration().getProperties().get(ClientProperties.READ_TIMEOUT);
-        if (readTimeout != null && readTimeout instanceof Integer && (Integer) readTimeout > 0) {
+        if (isGreaterThanZero(readTimeout)) {
             request.timeout((Integer) readTimeout, TimeUnit.MILLISECONDS);
         }
         return request;
@@ -367,22 +368,32 @@ public class JettyHttp2Connector implements Connector {
             jettyRequest.content(entity);
         }
         final AtomicBoolean callbackInvoked = new AtomicBoolean(false);
-        final Exception failure;
+        final Throwable failure;
         try {
-            final SettableFuture<ClientResponse> responseFuture = SettableFuture.create();
-            Futures.addCallback(responseFuture, new ClientResponseFutureCallback(jettyRequest));
+            final CompletableFuture<ClientResponse> responseFuture =
+                    new CompletableFuture<ClientResponse>().whenComplete(
+                            (clientResponse, throwable) -> {
+                                if (throwable instanceof CancellationException) {
+                                    // take care of future cancellation
+                                    jettyRequest.abort(throwable);
+
+                                }
+                            });
+
 
             jettyRequest.send(new JettyAdapter(clientHeadersSnapshot, jerseyRequest, responseFuture, callbackInvoked, callback));
             processContent(jerseyRequest, entity);
             return responseFuture;
-        } catch (final Exception t) {
+        } catch (final Throwable t) {
             failure = t;
         }
 
         if (callbackInvoked.compareAndSet(false, true)) {
             callback.failure(failure);
         }
-        return Futures.immediateFailedFuture(failure);
+        CompletableFuture<Object> future = new CompletableFuture<>();
+        future.completeExceptionally(failure);
+        return future;
     }
 
     @Override
@@ -410,43 +421,24 @@ public class JettyHttp2Connector implements Connector {
         }
     }
 
-    private static class ClientResponseFutureCallback implements FutureCallback<ClientResponse> {
-        private final Request jettyRequest;
-
-        ClientResponseFutureCallback(Request jettyRequest) {
-            this.jettyRequest = jettyRequest;
-        }
-
-        @Override
-        public void onSuccess(final ClientResponse result) {
-            // Nothing to do
-        }
-
-        @Override
-        public void onFailure(final Throwable t) {
-            if (t instanceof CancellationException) {
-                // take care of future cancellation
-                jettyRequest.abort(t);
-            }
-        }
-    }
-
     private static class JettyAdapter extends Response.Listener.Adapter {
 
         private final Map<String, String> clientHeadersSnapshot;
         private final ClientRequest jerseyRequest;
-        private final SettableFuture<ClientResponse> responseFuture;
+        private final CompletableFuture<ClientResponse> responseFuture;
         private final AtomicBoolean callbackInvoked;
-        private final ByteBufferInputStream entityStream = new ByteBufferInputStream();
-        private final AtomicReference<ClientResponse> jerseyResponse = new AtomicReference<>();
+        private final ByteBufferInputStream entityStream;
+        private final AtomicReference<ClientResponse> jerseyResponse;
         private final AsyncConnectorCallback callback;
 
-        private JettyAdapter(Map<String, String> clientHeadersSnapshot, ClientRequest jerseyRequest, SettableFuture<ClientResponse> responseFuture, AtomicBoolean callbackInvoked, AsyncConnectorCallback callback) {
+        private JettyAdapter(Map<String, String> clientHeadersSnapshot, ClientRequest jerseyRequest, CompletableFuture<ClientResponse> responseFuture, AtomicBoolean callbackInvoked, AsyncConnectorCallback callback) {
             this.clientHeadersSnapshot = clientHeadersSnapshot;
             this.jerseyRequest = jerseyRequest;
             this.responseFuture = responseFuture;
             this.callbackInvoked = callbackInvoked;
             this.callback = callback;
+            this.entityStream = new ByteBufferInputStream();
+            this.jerseyResponse = new AtomicReference<>();
         }
 
         private static ClientResponse translateResponse(final ClientRequest jerseyRequest,
@@ -468,18 +460,28 @@ public class JettyHttp2Connector implements Connector {
             }
             final ClientResponse response = translateResponse(jerseyRequest, jettyResponse, entityStream);
             jerseyResponse.set(response);
-            callback.response(response);
         }
 
         @Override
         public void onContent(final Response jettyResponse, final ByteBuffer content) {
             try {
-                entityStream.put(content);
+                // content must be consumed before returning from this method.
+
+                if (content.hasArray()) {
+                    byte[] array = content.array();
+                    byte[] buff = new byte[content.remaining()];
+                    System.arraycopy(array, content.arrayOffset(), buff, 0, content.remaining());
+                    entityStream.put(ByteBuffer.wrap(buff));
+                } else {
+                    byte[] buff = new byte[content.remaining()];
+                    content.get(buff);
+                    entityStream.put(ByteBuffer.wrap(buff));
+                }
             } catch (final InterruptedException ex) {
                 final ProcessingException pe = new ProcessingException(ex);
                 entityStream.closeQueue(pe);
                 // try to complete the future with an exception
-                responseFuture.setException(pe);
+                responseFuture.completeExceptionally(pe);
                 Thread.currentThread().interrupt();
             }
         }
@@ -487,15 +489,15 @@ public class JettyHttp2Connector implements Connector {
         @Override
         public void onComplete(final Result result) {
             entityStream.closeQueue();
-            // try to complete the future with the response only once truly done
-            responseFuture.set(jerseyResponse.get());
+            callback.response(jerseyResponse.get());
+            responseFuture.complete(jerseyResponse.get());
         }
 
         @Override
         public void onFailure(final Response response, final Throwable t) {
             entityStream.closeQueue(t);
             // try to complete the future with an exception
-            responseFuture.setException(t);
+            responseFuture.completeExceptionally(t);
             if (callbackInvoked.compareAndSet(false, true)) {
                 callback.failure(t);
             }

@@ -19,7 +19,7 @@
         <alpn-boot.version>8.1.11.v20170118</alpn-boot.version>
 
         <jersey.version>2.25</jersey.version>
-        <jetty.version>9.4.1.v20170120</jetty.version>
+        <jetty.version>9.4.8.v20171121</jetty.version>
 
         <argLine>
             -Xbootclasspath/p:${settings.localRepository}/org/mortbay/jetty/alpn/alpn-boot/${alpn-boot.version}/alpn-boot-${alpn-boot.version}.jar
@@ -50,6 +50,19 @@
             <groupId>org.mortbay.jetty.alpn</groupId>
             <artifactId>alpn-boot</artifactId>
             <version>${alpn-boot.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-alpn-openjdk8-server</artifactId>
+            <version>${jetty.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-alpn-openjdk8-client</artifactId>
+            <version>${jetty.version}</version>
+            <scope>test</scope>
         </dependency>
 
         <dependency>
@@ -104,7 +117,7 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>1.7.22</version>
+            <version>1.7.25</version>
         </dependency>
     </dependencies>
 </project>

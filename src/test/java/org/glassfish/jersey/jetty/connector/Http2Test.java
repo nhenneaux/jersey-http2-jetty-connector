@@ -3,7 +3,12 @@ package org.glassfish.jersey.jetty.connector;
 import com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider;
 import org.eclipse.jetty.alpn.server.ALPNServerConnectionFactory;
 import org.eclipse.jetty.http2.server.HTTP2ServerConnectionFactory;
-import org.eclipse.jetty.server.*;
+import org.eclipse.jetty.server.HttpConfiguration;
+import org.eclipse.jetty.server.HttpConnectionFactory;
+import org.eclipse.jetty.server.SecureRequestCustomizer;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.server.SslConnectionFactory;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.MultiException;
@@ -80,7 +85,7 @@ public class Http2Test {
 
                 // HTTP/2 Connection Factory
                 HTTP2ServerConnectionFactory h2 = new HTTP2ServerConnectionFactory(https_config);
-                NegotiatingServerConnectionFactory.checkProtocolNegotiationAvailable();
+
                 ALPNServerConnectionFactory alpn = new ALPNServerConnectionFactory();
                 alpn.setDefaultProtocol("h2");
 
@@ -159,13 +164,13 @@ public class Http2Test {
     }
 
 
-    @Test(timeout = 2_000)
+    @Test(timeout = 20_000)
     public void testValidTls() throws Exception {
         int port = PORT;
         TlsSecurityConfiguration tlsSecurityConfiguration = new TlsSecurityConfiguration(
                 getKeyStore("jks-keystore-password".toCharArray(), "localhost.jks"),
-                "localhost",
-                "aXeDUspU3AvUkaf5$a",
+                "localhost with alternate ip",
+                "vXzZO7sjy3jP4U7tDlihgOaf+WLlA7/vqnqlkLZzzQo=",
                 "TLSv1.2"
         );
         try (AutoCloseable ignored = jerseyServer(
@@ -174,6 +179,28 @@ public class Http2Test {
                 DummyRestService.class)) {
             DummyRestApi.Data hello = getClient(port, getKeyStore("jks-password".toCharArray(), "truststore.jks"), DummyRestApi.class).hello();
             assertEquals(DummyRestService.helloMessage, hello.getData());
+        }
+    }
+
+    @Test(timeout = 20_000)
+    public void testExpiredTls() throws Exception {
+        int port = PORT;
+        TlsSecurityConfiguration tlsSecurityConfiguration = new TlsSecurityConfiguration(
+                getKeyStore("jks-keystore-password".toCharArray(), "expired.jks"),
+                "localhost",
+                "aXeDUspU3AvUkaf5$a",
+                "TLSv1.2"
+        );
+        try (AutoCloseable ignored = jerseyServer(
+                port,
+                tlsSecurityConfiguration,
+                DummyRestService.class)) {
+            try {
+                getClient(port, getKeyStore("jks-password".toCharArray(), "truststore.jks"), DummyRestApi.class).hello();
+                fail();
+            } catch (ProcessingException e) {
+                assertEquals("java.util.concurrent.ExecutionException: org.eclipse.jetty.io.EofException", e.getMessage());
+            }
         }
     }
 
@@ -202,8 +229,8 @@ public class Http2Test {
         int port = PORT;
         TlsSecurityConfiguration tlsSecurityConfiguration = new TlsSecurityConfiguration(
                 getKeyStore("jks-keystore-password".toCharArray(), "localhost.jks"),
-                "localhost",
-                "aXeDUspU3AvUkaf5$a",
+                "localhost with alternate ip",
+                "vXzZO7sjy3jP4U7tDlihgOaf+WLlA7/vqnqlkLZzzQo=",
                 "TLSv1.2"
         );
         try (AutoCloseable ignored = jerseyServer(
@@ -228,8 +255,8 @@ public class Http2Test {
         int port = PORT;
         TlsSecurityConfiguration tlsSecurityConfiguration = new TlsSecurityConfiguration(
                 getKeyStore("jks-keystore-password".toCharArray(), "localhost.jks"),
-                "localhost",
-                "aXeDUspU3AvUkaf5$af",
+                "localhost with alternate ip",
+                "vXzZO7sjy3jP4U7tDlihgOaf+WLlA7/vqnqlkLZzzQo=_wrong",
                 "TLSv1.2"
         );
 
@@ -249,9 +276,9 @@ public class Http2Test {
         int port = PORT;
         TlsSecurityConfiguration tlsSecurityConfiguration = new TlsSecurityConfiguration(
                 getKeyStore("jks-keystore-password".toCharArray(), "localhost.jks"),
-                "localhost",
-                "aXeDUspU3AvUkaf5$af",
-                "TLSv1.2"
+                "localhost with alternate ip",
+                "vXzZO7sjy3jP4U7tDlihgOaf+WLlA7/vqnqlkLZzzQo=",
+                "TLSv1.0"
         );
 
         try (AutoCloseable ignored = jerseyServer(
@@ -260,8 +287,8 @@ public class Http2Test {
                 DummyRestService.class)) {
             getClient(port, getKeyStore("jks-password".toCharArray(), "truststore.jks"), DummyRestApi.class).hello();
             fail();
-        } catch (IllegalStateException e) {
-            assertEquals("java.security.UnrecoverableKeyException: Cannot recover key", e.getMessage());
+        } catch (ProcessingException e) {
+            assertEquals("java.util.concurrent.ExecutionException: org.eclipse.jetty.io.EofException", e.getMessage());
         }
     }
 
