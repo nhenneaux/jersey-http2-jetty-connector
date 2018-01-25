@@ -213,12 +213,12 @@ public class Http2Test {
         }
     }
 
-    @Test(timeout = 20_000)
+    @Test(timeout = 60_000)
     public void testConcurrent() throws Exception {
         testConcurrent(http2ClientConfig());
     }
 
-    @Test(timeout = 20_000)
+    @Test(timeout = 60_000)
     public void testConcurrentHttp1() throws Exception {
         testConcurrent(new ClientConfig().property(JettyClientProperties.ENABLE_SSL_HOSTNAME_VERIFICATION, Boolean.TRUE));
     }
