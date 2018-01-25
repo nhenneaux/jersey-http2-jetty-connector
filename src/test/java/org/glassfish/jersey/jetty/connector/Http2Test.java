@@ -19,6 +19,8 @@ import org.glassfish.jersey.client.proxy.WebResourceFactory;
 import org.glassfish.jersey.jackson.internal.jackson.jaxrs.json.JacksonJsonProvider;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.servlet.ServletContainer;
+import org.jboss.weld.environment.se.Weld;
+import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.Test;
 
 import javax.ws.rs.ProcessingException;
@@ -221,6 +223,7 @@ public class Http2Test {
         testConcurrent(new ClientConfig().property(JettyClientProperties.ENABLE_SSL_HOSTNAME_VERIFICATION, Boolean.TRUE));
     }
 
+
     private void testConcurrent(ClientConfig clientConfig) throws Exception {
         int port = PORT;
         TlsSecurityConfiguration tlsSecurityConfiguration = new TlsSecurityConfiguration(
@@ -264,6 +267,26 @@ public class Http2Test {
 
             assertEquals(nThreads * iterations, counter.get());
 
+        }
+    }
+
+    @Test
+    public void shouldWorkInLoop() throws Exception {
+        int port = PORT;
+        TlsSecurityConfiguration tlsSecurityConfiguration = new TlsSecurityConfiguration(
+                getKeyStore("jks-keystore-password".toCharArray(), "localhost.jks"),
+                "localhost with alternate ip",
+                "vXzZO7sjy3jP4U7tDlihgOaf+WLlA7/vqnqlkLZzzQo=",
+                "TLSv1.2"
+        );
+        final KeyStore truststore = getKeyStore("jks-password".toCharArray(), "truststore.jks");
+        for (int i = 0; i < 100; i++) {
+            try (
+                    @SuppressWarnings("unused") WeldContainer container = new Weld().initialize();
+                    AutoCloseable ignored = jerseyServer(port, tlsSecurityConfiguration, DummyRestService.class)
+            ) {
+                assertEquals(DummyRestService.helloMessage, getClient(port, truststore, DummyRestApi.class).hello().getData());
+            }
         }
     }
 
