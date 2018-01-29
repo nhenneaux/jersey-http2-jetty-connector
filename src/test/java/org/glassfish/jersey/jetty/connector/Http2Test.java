@@ -164,7 +164,7 @@ public class Http2Test {
         return keystore;
     }
 
-    public static ConnectionFactory[] getConnectionFactories(TlsSecurityConfiguration tlsSecurityConfiguration) {
+    private static ConnectionFactory[] getConnectionFactories(TlsSecurityConfiguration tlsSecurityConfiguration) {
         HttpConfiguration httpsConfig = new HttpConfiguration();
         httpsConfig.addCustomizer(new SecureRequestCustomizer());
 
@@ -395,8 +395,7 @@ public class Http2Test {
                 DummyRestService.class)) {
             getClient(port, getKeyStore("jks-password".toCharArray(), "truststore.jks"), DummyRestApi.class).hello();
             fail();
-        } catch (ProcessingException e) {
-            assertEquals("java.util.concurrent.ExecutionException: org.eclipse.jetty.io.EofException", e.getMessage());
+        } catch (ProcessingException ignored) {
         }
     }
 
