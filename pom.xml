@@ -109,7 +109,7 @@
                 <jdk>1.8</jdk>
             </activation>
             <properties>
-                <alpn-boot.version>8.1.11.v20170118</alpn-boot.version>
+                <alpn-boot.version>8.1.12.v20180117</alpn-boot.version>
                 <argLine>
                     -Xbootclasspath/p:${settings.localRepository}/org/mortbay/jetty/alpn/alpn-boot/${alpn-boot.version}/alpn-boot-${alpn-boot.version}.jar
                 </argLine>
