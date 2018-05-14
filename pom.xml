@@ -136,34 +136,21 @@
             </dependencies>
         </profile>
         <profile>
-            <id>java9</id>
+            <id>java8_151</id>
             <activation>
-                <jdk>9</jdk>
+                <jdk>1.8_151</jdk>
             </activation>
             <properties>
+                <alpn-boot.version>8.1.11.v20170118</alpn-boot.version>
                 <argLine>
-                    --add-modules java.activation,java.xml.bind
+                    -Xbootclasspath/p:${settings.localRepository}/org/mortbay/jetty/alpn/alpn-boot/${alpn-boot.version}/alpn-boot-${alpn-boot.version}.jar
                 </argLine>
             </properties>
-            <dependencies>
-                <dependency>
-                    <groupId>org.eclipse.jetty</groupId>
-                    <artifactId>jetty-alpn-java-server</artifactId>
-                    <version>${jetty.version}</version>
-                    <scope>test</scope>
-                </dependency>
-                <dependency>
-                    <groupId>org.eclipse.jetty</groupId>
-                    <artifactId>jetty-alpn-java-client</artifactId>
-                    <version>${jetty.version}</version>
-                    <scope>test</scope>
-                </dependency>
-            </dependencies>
         </profile>
         <profile>
-            <id>java10</id>
+            <id>java9+</id>
             <activation>
-                <jdk>10</jdk>
+                <jdk>[1.9,)</jdk>
             </activation>
             <properties>
                 <argLine>
