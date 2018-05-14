@@ -109,7 +109,7 @@
                 <jdk>1.8</jdk>
             </activation>
             <properties>
-                <alpn-boot.version>8.1.11.v20170118</alpn-boot.version>
+                <alpn-boot.version>8.1.12.v20180117</alpn-boot.version>
                 <argLine>
                     -Xbootclasspath/p:${settings.localRepository}/org/mortbay/jetty/alpn/alpn-boot/${alpn-boot.version}/alpn-boot-${alpn-boot.version}.jar
                 </argLine>
@@ -136,9 +136,21 @@
             </dependencies>
         </profile>
         <profile>
-            <id>java9</id>
+            <id>java8_151</id>
             <activation>
-                <jdk>9</jdk>
+                <jdk>1.8.0_151</jdk>
+            </activation>
+            <properties>
+                <alpn-boot.version>8.1.11.v20170118</alpn-boot.version>
+                <argLine>
+                    -Xbootclasspath/p:${settings.localRepository}/org/mortbay/jetty/alpn/alpn-boot/${alpn-boot.version}/alpn-boot-${alpn-boot.version}.jar
+                </argLine>
+            </properties>
+        </profile>
+        <profile>
+            <id>java9+</id>
+            <activation>
+                <jdk>[1.9,)</jdk>
             </activation>
             <properties>
                 <argLine>
