@@ -40,6 +40,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static org.hamcrest.CoreMatchers.anyOf;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -308,8 +311,8 @@ public class Http2Test {
             try {
                 getClient(port, getKeyStore("jks-password".toCharArray(), "truststore.jks"), DummyRestApi.class).hello();
                 fail();
-            } catch (ProcessingException e) {
-                assertEquals("java.util.concurrent.ExecutionException: org.eclipse.jetty.io.EofException", e.getMessage());
+            } catch (ProcessingException expected) {
+                assertThat(expected.getMessage(), anyOf(equalTo("java.util.concurrent.ExecutionException: org.eclipse.jetty.io.EofException"), equalTo("java.util.concurrent.ExecutionException: org.eclipse.jetty.io.RuntimeIOException: javax.net.ssl.SSLHandshakeException: General SSLEngine problem")));
             }
         }
     }
@@ -355,7 +358,7 @@ public class Http2Test {
                             .target("https://localhost:" + port)).hello();
             fail();
         } catch (ProcessingException e) {
-            assertThat(e.getMessage(), CoreMatchers.containsString("PKIX path building failed: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested target"));
+            assertThat(e.getMessage(), containsString("PKIX path building failed: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested target"));
         }
     }
 
