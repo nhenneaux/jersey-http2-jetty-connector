@@ -317,7 +317,7 @@ public class Http2Test {
         }
     }
 
-    @Test(timeout = 2_000)
+    @Test(timeout = 10_000)
     public void testInvalidAddressTls() throws Exception {
         int port = PORT;
         TlsSecurityConfiguration tlsSecurityConfiguration = new TlsSecurityConfiguration(
