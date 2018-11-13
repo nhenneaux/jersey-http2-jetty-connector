@@ -312,7 +312,10 @@ public class Http2Test {
                 getClient(port, getKeyStore("jks-password".toCharArray(), "truststore.jks"), DummyRestApi.class).hello();
                 fail();
             } catch (ProcessingException expected) {
-                assertThat(expected.getMessage(), anyOf(equalTo("java.util.concurrent.ExecutionException: org.eclipse.jetty.io.EofException"), equalTo("java.util.concurrent.ExecutionException: org.eclipse.jetty.io.RuntimeIOException: javax.net.ssl.SSLHandshakeException: General SSLEngine problem")));
+                assertThat(expected.getMessage(), anyOf(
+                        equalTo("java.util.concurrent.ExecutionException: java.io.IOException: Broken pipe"),
+                        equalTo("java.util.concurrent.ExecutionException: org.eclipse.jetty.io.EofException"),
+                        equalTo("java.util.concurrent.ExecutionException: org.eclipse.jetty.io.RuntimeIOException: javax.net.ssl.SSLHandshakeException: General SSLEngine problem")));
             }
         }
     }
@@ -332,8 +335,12 @@ public class Http2Test {
                 DummyRestService.class)) {
             getClient(port, getKeyStore("jks-password".toCharArray(), "truststore.jks"), DummyRestApi.class).hello();
             fail();
-        } catch (ProcessingException e) {
-            assertEquals("java.util.concurrent.ExecutionException: org.eclipse.jetty.io.EofException", e.getMessage());
+        } catch (ProcessingException expected) {
+            assertThat(expected.getMessage(), anyOf(
+                    equalTo("java.util.concurrent.ExecutionException: java.io.IOException: Broken pipe"),
+                    equalTo("java.util.concurrent.ExecutionException: org.eclipse.jetty.io.EofException")
+                    )
+            );
         }
     }
 
