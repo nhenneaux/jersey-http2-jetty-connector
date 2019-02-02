@@ -7,8 +7,21 @@
     <groupId>com.github.nhenneaux</groupId>
     <artifactId>jersey-http2-jetty</artifactId>
     <version>1.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+
+        <jersey.version>2.27</jersey.version>
+        <jetty.version>9.4.14.v20181114</jetty.version>
+    </properties>
+
 
     <modules>
         <module>jersey-http2-jetty-connector</module>
+        <module>jersey-http2-jetty-bundle</module>
     </modules>
 </project>
