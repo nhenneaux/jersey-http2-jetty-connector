@@ -19,6 +19,8 @@ import org.glassfish.jersey.client.proxy.WebResourceFactory;
 import org.glassfish.jersey.jackson.internal.jackson.jaxrs.json.JacksonJsonProvider;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.servlet.ServletContainer;
+import org.jboss.weld.environment.se.Weld;
+import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.Test;
 
 import javax.ws.rs.ProcessingException;
@@ -108,7 +110,7 @@ public class Http2Test {
                 http2Connector.setPort(port);
                 server.addConnector(http2Connector);
 
-                ServletContextHandler context = new ServletContextHandler(server, "/*");
+                ServletContextHandler context = new ServletContextHandler(server, "/*", ServletContextHandler.GZIP);
 
                 ServletHolder servlet = new ServletHolder(new ServletContainer(new ResourceConfig() {
                     {
@@ -284,6 +286,7 @@ public class Http2Test {
         final KeyStore truststore = getKeyStore("jks-password".toCharArray(), "truststore.jks");
         for (int i = 0; i < 100; i++) {
             try (
+                    @SuppressWarnings("unused") WeldContainer container = new Weld().initialize();
                     AutoCloseable ignored = jerseyServer(port, tlsSecurityConfiguration, DummyRestService.class)
             ) {
                 assertEquals(DummyRestService.helloMessage, getClient(port, truststore, DummyRestApi.class).hello().getData());
