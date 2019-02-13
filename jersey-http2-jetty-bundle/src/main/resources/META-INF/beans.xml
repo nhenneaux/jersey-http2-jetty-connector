@@ -1,0 +1,8 @@
+<beans xmlns:weld="http://jboss.org/schema/weld/beans"
+       xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+       bean-discovery-mode="all">
+    <weld:scan>
+        <weld:include name="com.githib.nhenneaux.**"/>
+        <weld:include name="org.glassfish.jersey.weld.se.WeldRequestScope"/>
+    </weld:scan>
+</beans>

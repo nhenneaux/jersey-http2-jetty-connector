@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN" monitorInterval="10">
+    <Appenders>
+        <Console name="ConsoleAppender" target="SYSTEM_OUT">
+        </Console>
+        <Async name="AsyncAppender">
+            <AppenderRef ref="ConsoleAppender"/>
+        </Async>
+    </Appenders>
+    <Loggers>
+        <Root level="info">
+            <AppenderRef ref="AsyncAppender"/>
+        </Root>
+    </Loggers>
+</Configuration>
