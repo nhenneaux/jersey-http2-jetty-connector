@@ -225,6 +225,9 @@ public class Http2Test {
                 port,
                 tlsSecurityConfiguration,
                 DummyRestService.class)) {
+            // Warmup
+            getClient(port, truststore, DummyRestApi.class, clientConfig).hello();
+
             final int nThreads = 4;
             final int iterations = 10_000;
             AtomicInteger counter = new AtomicInteger();
