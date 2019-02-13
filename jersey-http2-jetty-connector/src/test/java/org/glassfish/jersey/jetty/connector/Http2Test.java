@@ -61,21 +61,6 @@ public class Http2Test {
      */
     private static final List<String> WEAK_PROTOCOLS = Collections.unmodifiableList(Arrays.asList("SSL", "SSLv2", "SSLv2Hello", "SSLv3", "TLSv1", "TLSv1.1"));
 
-    public static void main(String[] args) throws Exception {
-        TlsSecurityConfiguration tlsSecurityConfiguration = new TlsSecurityConfiguration(
-                getKeyStore("jks-keystore-password".toCharArray(), "localhost.jks"),
-                "localhost",
-                "aXeDUspU3AvUkaf5$a",
-                "TLSv1.2"
-        );
-        try (AutoCloseable ignored = jerseyServer(
-                PORT,
-                tlsSecurityConfiguration,
-                DummyRestService.class)) {
-            System.in.read();
-        }
-    }
-
     private static <T> T getClient(int port, KeyStore trustStore, Class<T> clazz) {
         return getClient(port, trustStore, clazz, http2ClientConfig());
     }
@@ -202,12 +187,7 @@ public class Http2Test {
     @Test(timeout = 20_000)
     public void testValidTls() throws Exception {
         int port = PORT;
-        TlsSecurityConfiguration tlsSecurityConfiguration = new TlsSecurityConfiguration(
-                getKeyStore("jks-keystore-password".toCharArray(), "localhost.jks"),
-                "localhost with alternate ip",
-                "vXzZO7sjy3jP4U7tDlihgOaf+WLlA7/vqnqlkLZzzQo=",
-                "TLSv1.2"
-        );
+        TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
         try (AutoCloseable ignored = jerseyServer(
                 port,
                 tlsSecurityConfiguration,
@@ -215,6 +195,15 @@ public class Http2Test {
             DummyRestApi.Data hello = getClient(port, getKeyStore("jks-password".toCharArray(), "truststore.jks"), DummyRestApi.class).hello();
             assertEquals(DummyRestService.helloMessage, hello.getData());
         }
+    }
+
+    private TlsSecurityConfiguration tlsConfig() {
+        return new TlsSecurityConfiguration(
+                getKeyStore("TEST==ONLY==jks-keystore-password".toCharArray(), "keystore.jks"),
+                "server",
+                "TEST==ONLY==vXzZO7sjy3jP4U7tDlihgOaf+WLlA7/vqnqlkLZzzQo=",
+                "TLSv1.2"
+        );
     }
 
     @Test(timeout = 60_000)
@@ -230,12 +219,7 @@ public class Http2Test {
 
     private void testConcurrent(ClientConfig clientConfig) throws Exception {
         int port = PORT;
-        TlsSecurityConfiguration tlsSecurityConfiguration = new TlsSecurityConfiguration(
-                getKeyStore("jks-keystore-password".toCharArray(), "localhost.jks"),
-                "localhost with alternate ip",
-                "vXzZO7sjy3jP4U7tDlihgOaf+WLlA7/vqnqlkLZzzQo=",
-                "TLSv1.2"
-        );
+        TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
         final KeyStore truststore = getKeyStore("jks-password".toCharArray(), "truststore.jks");
         try (AutoCloseable ignored = jerseyServer(
                 port,
@@ -277,12 +261,7 @@ public class Http2Test {
     @Test
     public void shouldWorkInLoop() throws Exception {
         int port = PORT;
-        TlsSecurityConfiguration tlsSecurityConfiguration = new TlsSecurityConfiguration(
-                getKeyStore("jks-keystore-password".toCharArray(), "localhost.jks"),
-                "localhost with alternate ip",
-                "vXzZO7sjy3jP4U7tDlihgOaf+WLlA7/vqnqlkLZzzQo=",
-                "TLSv1.2"
-        );
+        TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
         final KeyStore truststore = getKeyStore("jks-password".toCharArray(), "truststore.jks");
         for (int i = 0; i < 100; i++) {
             try (
@@ -346,12 +325,7 @@ public class Http2Test {
     @Test
     public void testNoTrustStoreTls() throws Exception {
         int port = PORT;
-        TlsSecurityConfiguration tlsSecurityConfiguration = new TlsSecurityConfiguration(
-                getKeyStore("jks-keystore-password".toCharArray(), "localhost.jks"),
-                "localhost with alternate ip",
-                "vXzZO7sjy3jP4U7tDlihgOaf+WLlA7/vqnqlkLZzzQo=",
-                "TLSv1.2"
-        );
+        TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
         try (AutoCloseable ignored = jerseyServer(
                 port,
                 tlsSecurityConfiguration,
@@ -373,8 +347,8 @@ public class Http2Test {
     public void testWrongPasswordTls() throws Exception {
         int port = PORT;
         TlsSecurityConfiguration tlsSecurityConfiguration = new TlsSecurityConfiguration(
-                getKeyStore("jks-keystore-password".toCharArray(), "localhost.jks"),
-                "localhost with alternate ip",
+                getKeyStore("TEST==ONLY==jks-keystore-password".toCharArray(), "keystore.jks"),
+                "server",
                 "vXzZO7sjy3jP4U7tDlihgOaf+WLlA7/vqnqlkLZzzQo=_wrong",
                 "TLSv1.2"
         );
@@ -394,9 +368,9 @@ public class Http2Test {
     public void testDeprecatedTls() throws Exception {
         int port = PORT;
         TlsSecurityConfiguration tlsSecurityConfiguration = new TlsSecurityConfiguration(
-                getKeyStore("jks-keystore-password".toCharArray(), "localhost.jks"),
-                "localhost with alternate ip",
-                "vXzZO7sjy3jP4U7tDlihgOaf+WLlA7/vqnqlkLZzzQo=",
+                getKeyStore("TEST==ONLY==jks-keystore-password".toCharArray(), "keystore.jks"),
+                "server",
+                "TEST==ONLY==vXzZO7sjy3jP4U7tDlihgOaf+WLlA7/vqnqlkLZzzQo=",
                 "TLSv1"
         );
 

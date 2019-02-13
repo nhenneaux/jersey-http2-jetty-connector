@@ -3,6 +3,8 @@ package com.github.nhenneaux.jersey.http2.jetty.bundle;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.jetty.connector.JettyClientProperties;
 import org.glassfish.jersey.jetty.connector.JettyHttp2Connector;
+import org.jboss.weld.environment.se.Weld;
+import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.Test;
 
 import javax.ws.rs.client.ClientBuilder;
@@ -42,12 +44,7 @@ public class JettyServerTest {
     @Test(timeout = 20_000)
     public void testValidTls() throws Exception {
         int port = PORT;
-        JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = new JettyServer.TlsSecurityConfiguration(
-                getKeyStore("jks-keystore-password".toCharArray(), "localhost.jks"),
-                "localhost with alternate ip",
-                "vXzZO7sjy3jP4U7tDlihgOaf+WLlA7/vqnqlkLZzzQo=",
-                "TLSv1.2"
-        );
+        JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
         try (AutoCloseable ignored = jerseyServer(
                 port,
                 tlsSecurityConfiguration,
@@ -55,6 +52,15 @@ public class JettyServerTest {
             final Response ping = getClient(port, getKeyStore("jks-password".toCharArray(), "truststore.jks"), http2ClientConfig()).path("/ping").request().head();
             assertEquals(204, ping.getStatus());
         }
+    }
+
+    private JettyServer.TlsSecurityConfiguration tlsConfig() {
+        return new JettyServer.TlsSecurityConfiguration(
+                getKeyStore("TEST==ONLY==jks-keystore-password".toCharArray(), "keystore.jks"),
+                "server",
+                "TEST==ONLY==vXzZO7sjy3jP4U7tDlihgOaf+WLlA7/vqnqlkLZzzQo=",
+                "TLSv1.2"
+        );
     }
 
     @Test(timeout = 60_000)
@@ -70,12 +76,7 @@ public class JettyServerTest {
 
     private void testConcurrent(ClientConfig clientConfig) throws Exception {
         int port = PORT;
-        JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = new JettyServer.TlsSecurityConfiguration(
-                getKeyStore("jks-keystore-password".toCharArray(), "localhost.jks"),
-                "localhost with alternate ip",
-                "vXzZO7sjy3jP4U7tDlihgOaf+WLlA7/vqnqlkLZzzQo=",
-                "TLSv1.2"
-        );
+        JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
         final KeyStore truststore = getKeyStore("jks-password".toCharArray(), "truststore.jks");
         try (AutoCloseable ignored = jerseyServer(
                 port,
@@ -117,15 +118,11 @@ public class JettyServerTest {
     @Test
     public void shouldWorkInLoop() throws Exception {
         int port = PORT;
-        JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = new JettyServer.TlsSecurityConfiguration(
-                getKeyStore("jks-keystore-password".toCharArray(), "localhost.jks"),
-                "localhost with alternate ip",
-                "vXzZO7sjy3jP4U7tDlihgOaf+WLlA7/vqnqlkLZzzQo=",
-                "TLSv1.2"
-        );
+        JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
         final KeyStore truststore = getKeyStore("jks-password".toCharArray(), "truststore.jks");
         for (int i = 0; i < 100; i++) {
             try (
+                    @SuppressWarnings("unused") WeldContainer container = new Weld().initialize();
                     AutoCloseable ignored = jerseyServer(port, tlsSecurityConfiguration, DummyRestService.class)
             ) {
                 assertEquals(204, getClient(port, truststore, http2ClientConfig()).path("/ping").request().head().getStatus());

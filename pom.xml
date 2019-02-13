@@ -49,13 +49,11 @@
                     <groupId>org.eclipse.jetty</groupId>
                     <artifactId>jetty-alpn-openjdk8-server</artifactId>
                     <version>${jetty.version}</version>
-                    <scope>test</scope>
                 </dependency>
                 <dependency>
                     <groupId>org.eclipse.jetty</groupId>
                     <artifactId>jetty-alpn-openjdk8-client</artifactId>
                     <version>${jetty.version}</version>
-                    <scope>test</scope>
                 </dependency>
                 <dependency>
                     <groupId>org.hamcrest</groupId>

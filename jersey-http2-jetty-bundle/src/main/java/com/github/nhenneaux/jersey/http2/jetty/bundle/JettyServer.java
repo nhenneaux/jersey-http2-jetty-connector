@@ -31,6 +31,13 @@ import java.util.List;
 
 public class JettyServer implements AutoCloseable {
 
+    static {
+        // Disable validation: a warning message occurs when WELD validate file: "beans.xml". This warning follows the
+        // removal of the custom tags by the WELD team.
+        // See following issue for more details on this warning: https://issues.jboss.org/browse/WELD-2428
+        System.setProperty("org.jboss.weld.xml.disableValidating", "true");
+    }
+
     /**
      * Weak ciphers that must be excluded from the TLS configuration. the list comes from the RFC 7540 recommendations https://tools.ietf.org/html/rfc7540#appendix-A.
      */
@@ -52,7 +59,7 @@ public class JettyServer implements AutoCloseable {
         http2Connector.setPort(port);
         server.addConnector(http2Connector);
 
-        ServletContextHandler context = new ServletContextHandler(server, "/*", ServletContextHandler.GZIP);
+        ServletContextHandler context = new ServletContextHandler(server, "/", ServletContextHandler.GZIP);
 
         final ResourceConfig resourceConfig = new ResourceConfig();
         for (Class<?> serviceClass : serviceClasses) {
