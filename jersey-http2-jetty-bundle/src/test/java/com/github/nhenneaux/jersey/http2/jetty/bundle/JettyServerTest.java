@@ -84,6 +84,9 @@ public class JettyServerTest {
                 DummyRestService.class)) {
             final int nThreads = 4;
             final int iterations = 10_000;
+            // Warmup
+            getClient(port, truststore, clientConfig).path("/ping").request().head();
+
             AtomicInteger counter = new AtomicInteger();
             final Runnable runnable = () -> {
                 final WebTarget client = getClient(port, truststore, clientConfig);
