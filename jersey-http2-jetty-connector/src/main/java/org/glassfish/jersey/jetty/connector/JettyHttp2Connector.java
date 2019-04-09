@@ -1,41 +1,17 @@
 /*
- * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
+ * Copyright (c) 2013, 2018 Oracle and/or its affiliates. All rights reserved.
  *
- * Copyright (c) 2013-2017 Oracle and/or its affiliates. All rights reserved.
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License v. 2.0, which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * The contents of this file are subject to the terms of either the GNU
- * General Public License Version 2 only ("GPL") or the Common Development
- * and Distribution License("CDDL") (collectively, the "License").  You
- * may not use this file except in compliance with the License.  You can
- * obtain a copy of the License at
- * https://oss.oracle.com/licenses/CDDL+GPL-1.1
- * or LICENSE.txt.  See the License for the specific
- * language governing permissions and limitations under the License.
+ * This Source Code may also be made available under the following Secondary
+ * Licenses when the conditions for such availability set forth in the
+ * Eclipse Public License v. 2.0 are satisfied: GNU General Public License,
+ * version 2 with the GNU Classpath Exception, which is available at
+ * https://www.gnu.org/software/classpath/license.html.
  *
- * When distributing the software, include this License Header Notice in each
- * file and include the License file at LICENSE.txt.
- *
- * GPL Classpath Exception:
- * Oracle designates this particular file as subject to the "Classpath"
- * exception as provided by Oracle in the GPL Version 2 section of the License
- * file that accompanied this code.
- *
- * Modifications:
- * If applicable, add the following below the License Header, with the fields
- * enclosed by brackets [] replaced by your own identifying information:
- * "Portions Copyright [year] [name of copyright owner]"
- *
- * Contributor(s):
- * If you wish your version of this file to be governed by only the CDDL or
- * only the GPL Version 2, indicate your decision by adding "[Contributor]
- * elects to include this software in this distribution under the [CDDL or GPL
- * Version 2] license."  If you don't indicate a single choice of license, a
- * recipient has the option to distribute your version of this file under
- * either the CDDL, the GPL Version 2 or to extend the choice of license to
- * its licensees as provided above.  However, if you add GPL Version 2 code
- * and therefore, elected the GPL Version 2 license, then the option applies
- * only if the new code is made subject to such option by the copyright
- * holder.
+ * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  */
 
 package org.glassfish.jersey.jetty.connector;
@@ -249,8 +225,16 @@ public class JettyHttp2Connector implements Connector {
         return stringHeaders;
     }
 
+    private static ClientResponse translateResponse(final ClientRequest jerseyRequest,
+                                                    final org.eclipse.jetty.client.api.Response jettyResponse,
+                                                    final NonBlockingInputStream entityStream) {
+        final ClientResponse jerseyResponse = new ClientResponse(Statuses.from(jettyResponse.getStatus()), jerseyRequest);
+        processResponseHeaders(jettyResponse.getHeaders(), jerseyResponse);
+        jerseyResponse.setEntityStream(entityStream);
+        return jerseyResponse;
+    }
     private boolean isGreaterThanZero(Object object) {
-        return object != null && object instanceof Integer && (Integer) object > 0;
+        return object instanceof Integer && (Integer) object > 0;
     }
 
     /**
@@ -360,6 +344,7 @@ public class JettyHttp2Connector implements Connector {
     }
 
     @Override
+    @SuppressWarnings("squid:S1181") // Throwable and Error should not be caught
     public Future<?> apply(final ClientRequest jerseyRequest, final AsyncConnectorCallback callback) {
         final Request jettyRequest = translateRequest(jerseyRequest);
         final Map<String, String> clientHeadersSnapshot = writeOutBoundHeaders(jerseyRequest.getHeaders(), jettyRequest);
@@ -381,7 +366,64 @@ public class JettyHttp2Connector implements Connector {
                             });
 
 
-            jettyRequest.send(new JettyAdapter(clientHeadersSnapshot, jerseyRequest, responseFuture, callbackInvoked, callback));
+            final AtomicReference<ClientResponse> jerseyResponse = new AtomicReference<>();
+            // The stream is closed by another layer of JAX-RS
+            @SuppressWarnings("squid:S2095") final ByteBufferInputStream entityStream = new ByteBufferInputStream();
+            jettyRequest.send(new Response.Listener.Adapter() {
+
+                @Override
+                public void onHeaders(final Response jettyResponse) {
+                    HeaderUtils.checkHeaderChanges(clientHeadersSnapshot, jerseyRequest.getHeaders(),
+                            JettyHttp2Connector.this.getClass().getName());
+
+                    if (responseFuture.isDone() && !callbackInvoked.compareAndSet(false, true)) {
+                        return;
+                    }
+                    final ClientResponse response = translateResponse(jerseyRequest, jettyResponse, entityStream);
+                    jerseyResponse.set(response);
+                }
+
+                @Override
+                public void onContent(final Response jettyResponse, final ByteBuffer content) {
+                    try {
+                        // content must be consumed before returning from this method.
+
+                        if (content.hasArray()) {
+                            byte[] array = content.array();
+                            byte[] buff = new byte[content.remaining()];
+                            System.arraycopy(array, content.arrayOffset(), buff, 0, content.remaining());
+                            entityStream.put(ByteBuffer.wrap(buff));
+                        } else {
+                            byte[] buff = new byte[content.remaining()];
+                            content.get(buff);
+                            entityStream.put(ByteBuffer.wrap(buff));
+                        }
+                    } catch (final InterruptedException ex) {
+                        final ProcessingException pe = new ProcessingException(ex);
+                        entityStream.closeQueue(pe);
+                        // try to complete the future with an exception
+                        responseFuture.completeExceptionally(pe);
+                        Thread.currentThread().interrupt();
+                    }
+                }
+
+                @Override
+                public void onComplete(final Result result) {
+                    entityStream.closeQueue();
+                    callback.response(jerseyResponse.get());
+                    responseFuture.complete(jerseyResponse.get());
+                }
+
+                @Override
+                public void onFailure(final Response response, final Throwable t) {
+                    entityStream.closeQueue(t);
+                    // try to complete the future with an exception
+                    responseFuture.completeExceptionally(t);
+                    if (callbackInvoked.compareAndSet(false, true)) {
+                        callback.failure(t);
+                    }
+                }
+            });
             processContent(jerseyRequest, entity);
             return responseFuture;
         } catch (final Throwable t) {
@@ -410,97 +452,16 @@ public class JettyHttp2Connector implements Connector {
         }
     }
 
+    @SuppressWarnings("squid:S4929") // read(byte[],int,int) is already using the Jetty stream method => false-positive
     private static final class HttpClientResponseInputStream extends FilterInputStream {
 
         HttpClientResponseInputStream(final ContentResponse jettyResponse) {
             super(getInputStream(jettyResponse));
+
         }
 
         private static InputStream getInputStream(final ContentResponse response) {
             return new ByteArrayInputStream(response.getContent());
-        }
-    }
-
-    private static class JettyAdapter extends Response.Listener.Adapter {
-
-        private final Map<String, String> clientHeadersSnapshot;
-        private final ClientRequest jerseyRequest;
-        private final CompletableFuture<ClientResponse> responseFuture;
-        private final AtomicBoolean callbackInvoked;
-        private final ByteBufferInputStream entityStream;
-        private final AtomicReference<ClientResponse> jerseyResponse;
-        private final AsyncConnectorCallback callback;
-
-        private JettyAdapter(Map<String, String> clientHeadersSnapshot, ClientRequest jerseyRequest, CompletableFuture<ClientResponse> responseFuture, AtomicBoolean callbackInvoked, AsyncConnectorCallback callback) {
-            this.clientHeadersSnapshot = clientHeadersSnapshot;
-            this.jerseyRequest = jerseyRequest;
-            this.responseFuture = responseFuture;
-            this.callbackInvoked = callbackInvoked;
-            this.callback = callback;
-            this.entityStream = new ByteBufferInputStream();
-            this.jerseyResponse = new AtomicReference<>();
-        }
-
-        private static ClientResponse translateResponse(final ClientRequest jerseyRequest,
-                                                        final org.eclipse.jetty.client.api.Response jettyResponse,
-                                                        final NonBlockingInputStream entityStream) {
-            final ClientResponse jerseyResponse = new ClientResponse(Statuses.from(jettyResponse.getStatus()), jerseyRequest);
-            processResponseHeaders(jettyResponse.getHeaders(), jerseyResponse);
-            jerseyResponse.setEntityStream(entityStream);
-            return jerseyResponse;
-        }
-
-        @Override
-        public void onHeaders(final Response jettyResponse) {
-            HeaderUtils.checkHeaderChanges(clientHeadersSnapshot, jerseyRequest.getHeaders(),
-                    JettyHttp2Connector.class.getName());
-
-            if (responseFuture.isDone() && !callbackInvoked.compareAndSet(false, true)) {
-                return;
-            }
-            final ClientResponse response = translateResponse(jerseyRequest, jettyResponse, entityStream);
-            jerseyResponse.set(response);
-        }
-
-        @Override
-        public void onContent(final Response jettyResponse, final ByteBuffer content) {
-            try {
-                // content must be consumed before returning from this method.
-
-                if (content.hasArray()) {
-                    byte[] array = content.array();
-                    byte[] buff = new byte[content.remaining()];
-                    System.arraycopy(array, content.arrayOffset(), buff, 0, content.remaining());
-                    entityStream.put(ByteBuffer.wrap(buff));
-                } else {
-                    byte[] buff = new byte[content.remaining()];
-                    content.get(buff);
-                    entityStream.put(ByteBuffer.wrap(buff));
-                }
-            } catch (final InterruptedException ex) {
-                final ProcessingException pe = new ProcessingException(ex);
-                entityStream.closeQueue(pe);
-                // try to complete the future with an exception
-                responseFuture.completeExceptionally(pe);
-                Thread.currentThread().interrupt();
-            }
-        }
-
-        @Override
-        public void onComplete(final Result result) {
-            entityStream.closeQueue();
-            callback.response(jerseyResponse.get());
-            responseFuture.complete(jerseyResponse.get());
-        }
-
-        @Override
-        public void onFailure(final Response response, final Throwable t) {
-            entityStream.closeQueue(t);
-            // try to complete the future with an exception
-            responseFuture.completeExceptionally(t);
-            if (callbackInvoked.compareAndSet(false, true)) {
-                callback.failure(t);
-            }
         }
     }
 }
