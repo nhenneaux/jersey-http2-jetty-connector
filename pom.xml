@@ -66,7 +66,7 @@
         <profile>
             <id>java8_161-181</id>
             <activation>
-                <jdk>[1.8.0_161, 1.8.0_181]</jdk>
+                <jdk>[1.8.0_161,1.8.0_181]</jdk>
             </activation>
             <properties>
                 <alpn-boot.version>8.1.12.v20180117</alpn-boot.version>
