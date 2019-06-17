@@ -64,7 +64,7 @@
             </dependencies>
         </profile>
         <profile>
-            <id>java8_151</id>
+            <id>java8_161-181</id>
             <activation>
                 <jdk>[1.8.0_161, 1.8.0_181]</jdk>
             </activation>
