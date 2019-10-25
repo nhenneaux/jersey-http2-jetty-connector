@@ -15,7 +15,7 @@
         <dependency>
             <groupId>com.github.nhenneaux</groupId>
             <artifactId>jersey-http2-jetty-connector</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>${project.parent.version}</version>
         </dependency>
 
         <dependency>
