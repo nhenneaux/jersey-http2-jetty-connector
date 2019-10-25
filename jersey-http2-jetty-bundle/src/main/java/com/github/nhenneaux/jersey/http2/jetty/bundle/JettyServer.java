@@ -33,6 +33,9 @@ public class JettyServer implements AutoCloseable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JettyServer.class);
 
+
+    private static final long IDLE_TIMEOUT_IN_MILLISECONDS = 100L;
+
     static {
         // Disable validation: a warning message occurs when WELD validate file: "beans.xml". This warning follows the
         // removal of the custom tags by the WELD team.
@@ -54,9 +57,11 @@ public class JettyServer implements AutoCloseable {
 
     JettyServer(int port, TlsSecurityConfiguration tlsSecurityConfiguration, Class<?>... serviceClasses) {
         this.server = new Server();
-        ServerConnector http2Connector =
-                new ServerConnector(server, getConnectionFactories(tlsSecurityConfiguration));
+
+        ServerConnector http2Connector = new ServerConnector(server, getConnectionFactories(tlsSecurityConfiguration));
         http2Connector.setPort(port);
+
+        http2Connector.setIdleTimeout(IDLE_TIMEOUT_IN_MILLISECONDS);
         server.addConnector(http2Connector);
 
         ServletContextHandler context = new ServletContextHandler(server, "/", ServletContextHandler.GZIP);
@@ -88,9 +93,12 @@ public class JettyServer implements AutoCloseable {
 
     private static ConnectionFactory[] getConnectionFactories(TlsSecurityConfiguration tlsSecurityConfiguration) {
         HttpConfiguration httpsConfig = new HttpConfiguration();
+
+        httpsConfig.setIdleTimeout(IDLE_TIMEOUT_IN_MILLISECONDS);
         httpsConfig.addCustomizer(new SecureRequestCustomizer());
 
         HTTP2ServerConnectionFactory h2 = new HTTP2ServerConnectionFactory(httpsConfig);
+        h2.setStreamIdleTimeout(IDLE_TIMEOUT_IN_MILLISECONDS);
 
         ALPNServerConnectionFactory alpn = new ALPNServerConnectionFactory();
         // Default protocol to HTTP/1.1 for compatibility with HTTP/1.1 client
