@@ -19,8 +19,10 @@ import java.util.stream.IntStream;
 import static com.github.nhenneaux.jersey.http2.jetty.bundle.JettyServer.TlsSecurityConfiguration.getKeyStore;
 import static org.junit.Assert.assertEquals;
 
+@SuppressWarnings("squid:S00112")
 public class JettyServerTest {
-    private static final int PORT = 2223;
+    static final int PORT = 2223;
+    private static final String PING = "/ping";
 
     private static WebTarget getClient(int port, KeyStore trustStore, ClientConfig clientConfig) {
         return ClientBuilder.newBuilder()
@@ -36,10 +38,22 @@ public class JettyServerTest {
                 .connectorProvider(JettyHttp2Connector::new);
     }
 
-    private static AutoCloseable jerseyServer(int port, JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration, final Class<?>... serviceClasses) {
+    static AutoCloseable jerseyServer(int port, JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration, final Class<?>... serviceClasses) {
         return new JettyServer(port, tlsSecurityConfiguration, serviceClasses);
     }
 
+    static WebTarget getClient(int port) {
+        return getClient(port, getKeyStore("jks-password".toCharArray(), "truststore.jks"), http2ClientConfig());
+    }
+
+    static JettyServer.TlsSecurityConfiguration tlsConfig() {
+        return new JettyServer.TlsSecurityConfiguration(
+                getKeyStore("TEST==ONLY==jks-keystore-password".toCharArray(), "keystore.jks"),
+                "server",
+                "TEST==ONLY==vXzZO7sjy3jP4U7tDlihgOaf+WLlA7/vqnqlkLZzzQo=",
+                "TLSv1.2"
+        );
+    }
 
     @Test(timeout = 20_000)
     public void testValidTls() throws Exception {
@@ -49,18 +63,9 @@ public class JettyServerTest {
                 port,
                 tlsSecurityConfiguration,
                 DummyRestService.class)) {
-            final Response ping = getClient(port, getKeyStore("jks-password".toCharArray(), "truststore.jks"), http2ClientConfig()).path("/ping").request().head();
+            final Response ping = getClient(port).path(PING).request().head();
             assertEquals(204, ping.getStatus());
         }
-    }
-
-    private JettyServer.TlsSecurityConfiguration tlsConfig() {
-        return new JettyServer.TlsSecurityConfiguration(
-                getKeyStore("TEST==ONLY==jks-keystore-password".toCharArray(), "keystore.jks"),
-                "server",
-                "TEST==ONLY==vXzZO7sjy3jP4U7tDlihgOaf+WLlA7/vqnqlkLZzzQo=",
-                "TLSv1.2"
-        );
     }
 
     @Test(timeout = 60_000)
@@ -85,14 +90,14 @@ public class JettyServerTest {
             final int nThreads = 4;
             final int iterations = 10_000;
             // Warmup
-            getClient(port, truststore, clientConfig).path("/ping").request().head();
+            getClient(port, truststore, clientConfig).path(PING).request().head();
 
             AtomicInteger counter = new AtomicInteger();
             final Runnable runnable = () -> {
                 final WebTarget client = getClient(port, truststore, clientConfig);
                 final long start = System.currentTimeMillis();
                 for (int i = 0; i < iterations; i++) {
-                    client.path("/ping").request().head();
+                    client.path(PING).request().head();
                     counter.incrementAndGet();
                     if (i % 1_000 == 0) {
                         System.out.println((System.currentTimeMillis() - start) * 1.0 / Math.max(i, 1));
@@ -113,7 +118,7 @@ public class JettyServerTest {
                 thread.join();
             }
 
-            assertEquals(nThreads * iterations, counter.get());
+            assertEquals((long) nThreads * iterations, counter.get());
 
         }
     }
@@ -122,13 +127,12 @@ public class JettyServerTest {
     public void shouldWorkInLoop() throws Exception {
         int port = PORT;
         JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
-        final KeyStore truststore = getKeyStore("jks-password".toCharArray(), "truststore.jks");
         for (int i = 0; i < 100; i++) {
             try (
                     @SuppressWarnings("unused") WeldContainer container = new Weld().initialize();
                     AutoCloseable ignored = jerseyServer(port, tlsSecurityConfiguration, DummyRestService.class)
             ) {
-                assertEquals(204, getClient(port, truststore, http2ClientConfig()).path("/ping").request().head().getStatus());
+                assertEquals(204, getClient(port).path(PING).request().head().getStatus());
             }
         }
     }

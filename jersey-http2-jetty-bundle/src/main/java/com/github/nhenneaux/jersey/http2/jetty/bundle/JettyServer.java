@@ -31,6 +31,8 @@ import java.util.List;
 
 public class JettyServer implements AutoCloseable {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(JettyServer.class);
+
     static {
         // Disable validation: a warning message occurs when WELD validate file: "beans.xml". This warning follows the
         // removal of the custom tags by the WELD team.
@@ -48,11 +50,9 @@ public class JettyServer implements AutoCloseable {
      */
     private static final List<String> WEAK_PROTOCOLS = Collections.unmodifiableList(Arrays.asList("SSL", "SSLv2", "SSLv2Hello", "SSLv3", "TLSv1", "TLSv1.1"));
 
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(JettyServer.class);
     private final Server server;
 
-    public JettyServer(int port, TlsSecurityConfiguration tlsSecurityConfiguration, Class<?>... serviceClasses) {
+    JettyServer(int port, TlsSecurityConfiguration tlsSecurityConfiguration, Class<?>... serviceClasses) {
         this.server = new Server();
         ServerConnector http2Connector =
                 new ServerConnector(server, getConnectionFactories(tlsSecurityConfiguration));
@@ -96,7 +96,7 @@ public class JettyServer implements AutoCloseable {
         // Default protocol to HTTP/1.1 for compatibility with HTTP/1.1 client
         alpn.setDefaultProtocol(HttpVersion.HTTP_1_1.asString());
 
-        SslContextFactory sslContextFactory = new SslContextFactory();
+        SslContextFactory sslContextFactory = new SslContextFactory.Server();
 
         sslContextFactory.setKeyStore(tlsSecurityConfiguration.keyStore);
         sslContextFactory.setKeyManagerPassword(tlsSecurityConfiguration.certificatePassword);
@@ -110,6 +110,7 @@ public class JettyServer implements AutoCloseable {
 
         sslContextFactory.setExcludeCipherSuites(WEAK_CIPHERS.toArray(new String[0]));
 
+        sslContextFactory.setEndpointIdentificationAlgorithm("HTTPS");
         return new ConnectionFactory[]{
                 new SslConnectionFactory(sslContextFactory, alpn.getProtocol()),
                 alpn,
@@ -130,20 +131,20 @@ public class JettyServer implements AutoCloseable {
         }
     }
 
-    public static class TlsSecurityConfiguration {
+    static class TlsSecurityConfiguration {
         private final KeyStore keyStore;
         private final String certificateAlias;
         private final String certificatePassword;
         private final String protocol;
 
-        public TlsSecurityConfiguration(KeyStore keyStore, String certificateAlias, String certificatePassword, String protocol) {
+        TlsSecurityConfiguration(KeyStore keyStore, String certificateAlias, String certificatePassword, String protocol) {
             this.keyStore = keyStore;
             this.certificateAlias = certificateAlias;
             this.certificatePassword = certificatePassword;
             this.protocol = protocol;
         }
 
-        public static KeyStore getKeyStore(char[] password, String keystoreClasspathLocation) {
+        static KeyStore getKeyStore(char[] password, String keystoreClasspathLocation) {
             final KeyStore keystore;
             try {
                 keystore = KeyStore.getInstance(KeyStore.getDefaultType());
