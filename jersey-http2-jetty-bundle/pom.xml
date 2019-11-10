@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <artifactId>jersey-http2-jetty</artifactId>
-        <groupId>com.github.nhenneaux</groupId>
+        <groupId>com.github.nhenneaux.jersey.jetty.http2</groupId>
         <version>1.0.0</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -13,7 +13,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.github.nhenneaux</groupId>
+            <groupId>com.github.nhenneaux.jersey.jetty.http2</groupId>
             <artifactId>jersey-http2-jetty-connector</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
