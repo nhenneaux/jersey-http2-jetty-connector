@@ -59,7 +59,7 @@ public class JettyServer implements AutoCloseable {
         http2Connector.setPort(port);
         server.addConnector(http2Connector);
 
-        ServletContextHandler context = new ServletContextHandler(server, "/", ServletContextHandler.GZIP);
+        ServletContextHandler context = new ServletContextHandler(server, "/");
 
         final ResourceConfig resourceConfig = new ResourceConfig();
         for (Class<?> serviceClass : serviceClasses) {

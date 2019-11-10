@@ -6,4 +6,4 @@ jdk:
   - openjdk11
 sudo: false # faster builds
 
-script: "mvn install"
+script: "mvn verify"
