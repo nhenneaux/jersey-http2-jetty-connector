@@ -6,3 +6,4 @@ a new class `JettyHttp2Connector` is implemented based on the corresponding [`Je
 For a connector supporting HTTP/1.1 and HTTP/2.0, you may have a look at [Jersey Java HTTP client connector](https://github.com/nhenneaux/jersey-httpclient-connector).
 
 [![Build Status](https://travis-ci.org/nhenneaux/jersey-http2-jetty-connector.svg?branch=master)](https://travis-ci.org/nhenneaux/jersey-http2-jetty-connector)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.nhenneaux.jersey.jetty.http2/jersey-http2-jettyA/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.nhenneaux.jersey.jetty.http2/jersey-http2-jetty)
