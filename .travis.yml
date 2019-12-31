@@ -8,7 +8,6 @@ jdk:
   - openjdk13
 sudo: false # faster builds
 
-
 addons:
   sonarcloud:
     organization: "nhenneaux"
