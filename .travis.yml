@@ -8,4 +8,11 @@ jdk:
   - openjdk13
 sudo: false # faster builds
 
-script: "mvn verify"
+
+addons:
+  sonarcloud:
+    organization: "nhenneaux"
+    token:
+      secure: gxSvQx8L+YXdCBi0hp3P9yJ+oRUvNiIR3k9Zah6BPpb7zVcewimjTBDRgypnR3HHIsfkIfM/FDNhbvcXk+Zrto94tOmTMkaz27soKO/9W/Lzla2lz1HnO8nXCFsS4jB59mtaHTCAT1Co1yMopTZPrtplawi+5qQO4eIinhjovpR4ny3h8fFCtH7FDRxM8pDa86ZeoU3bKBrwZdlqkkJSArBihILchEL+41VWeZ7aPQcowZ4h7hFTHlrxuNXZn0L9eLmmyVl8IOhWbmiB11rQDHQv9pyh/9NaF/mrZ1UH5a2nT6G5sndPfoh++udaVh7qfQFSkCD9K0vidquTnVUhbjKhKAWtBWWSPdz5TTI2xO8K6oNzN8NREaoth9YkKCY33aI5TOWtHnE6JQ3NdlPlNZBqhrKcB9ZxMAOv+siuK6K1jmRAW+92wMoqWrG9XvFAhQIzlsAITdf1UnIKldzXoKSsgTNlECkNiFxy0VPerSk5PtuZjxiaGMXRIXoMCqeQJ+pI0wyIKrlWmnDjml72TYNT5IHaR+7wmOpE/tXR3jS98lN92ami1+hL4yVmnQkw62m6gpiiV74nzep/rE8WwWTsbecTNFkcp2UdLWmVUqPz2OJLqkqHJ5h8mNHU3at6BiifPmtgL/MNLDZ+UapJA4N5fmIcS/AI6fTsyhdRgDA=
+
+script: mvn org.jacoco:jacoco-maven-plugin:prepare-agent verify sonar:sonar -Dsonar.projectKey=nhenneaux_jersey-http2-jetty-connector
