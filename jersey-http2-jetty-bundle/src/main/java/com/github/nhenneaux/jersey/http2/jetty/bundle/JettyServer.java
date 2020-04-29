@@ -147,7 +147,7 @@ public class JettyServer implements AutoCloseable {
         static KeyStore getKeyStore(char[] password, String keystoreClasspathLocation) {
             final KeyStore keystore;
             try {
-                keystore = KeyStore.getInstance(KeyStore.getDefaultType());
+                keystore = KeyStore.getInstance("PKCS12");
             } catch (KeyStoreException e) {
                 throw new IllegalStateException(e);
             }
