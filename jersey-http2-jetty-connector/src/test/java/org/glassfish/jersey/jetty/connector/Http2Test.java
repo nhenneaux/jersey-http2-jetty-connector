@@ -42,8 +42,8 @@ import java.util.stream.IntStream;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 /**
@@ -163,7 +163,7 @@ public class Http2Test {
         // Default protocol to HTTP/1.1 for compatibility with HTTP/1.1 client
         alpn.setDefaultProtocol(HttpVersion.HTTP_1_1.asString());
 
-        SslContextFactory sslContextFactory = new SslContextFactory();
+        SslContextFactory sslContextFactory = new SslContextFactory.Server();
 
         sslContextFactory.setKeyStore(tlsSecurityConfiguration.keyStore);
         sslContextFactory.setKeyManagerPassword(tlsSecurityConfiguration.certificatePassword);
@@ -199,9 +199,9 @@ public class Http2Test {
 
     private TlsSecurityConfiguration tlsConfig() {
         return new TlsSecurityConfiguration(
-                getKeyStore("TEST==ONLY==jks-keystore-password".toCharArray(), "keystore.jks"),
+                getKeyStore("TEST==ONLY==jks-keystore-password".toCharArray(), "keystore.p12"),
                 "server",
-                "TEST==ONLY==vXzZO7sjy3jP4U7tDlihgOaf+WLlA7/vqnqlkLZzzQo=",
+                "TEST==ONLY==jks-keystore-password",
                 "TLSv1.2"
         );
     }
@@ -355,9 +355,9 @@ public class Http2Test {
     public void testWrongPasswordTls() throws Exception {
         int port = PORT;
         TlsSecurityConfiguration tlsSecurityConfiguration = new TlsSecurityConfiguration(
-                getKeyStore("TEST==ONLY==jks-keystore-password".toCharArray(), "keystore.jks"),
+                getKeyStore("TEST==ONLY==jks-keystore-password".toCharArray(), "keystore.p12"),
                 "server",
-                "vXzZO7sjy3jP4U7tDlihgOaf+WLlA7/vqnqlkLZzzQo=_wrong",
+                "TEST==ONLY==jks-keystore-password_wrong",
                 "TLSv1.2"
         );
 
@@ -368,7 +368,7 @@ public class Http2Test {
             getClient(port, getKeyStore("jks-password".toCharArray(), "truststore.jks"), DummyRestApi.class).hello();
             fail();
         } catch (IllegalStateException e) {
-            assertEquals("java.security.UnrecoverableKeyException: Cannot recover key", e.getMessage());
+            assertEquals("java.security.UnrecoverableKeyException: Get Key failed: Given final block not properly padded. Such issues can arise if a bad key is used during decryption.", e.getMessage());
         }
     }
 
@@ -376,9 +376,9 @@ public class Http2Test {
     public void testDeprecatedTls() throws Exception {
         int port = PORT;
         TlsSecurityConfiguration tlsSecurityConfiguration = new TlsSecurityConfiguration(
-                getKeyStore("TEST==ONLY==jks-keystore-password".toCharArray(), "keystore.jks"),
+                getKeyStore("TEST==ONLY==jks-keystore-password".toCharArray(), "keystore.p12"),
                 "server",
-                "TEST==ONLY==vXzZO7sjy3jP4U7tDlihgOaf+WLlA7/vqnqlkLZzzQo=",
+                "TEST==ONLY==jks-keystore-password",
                 "TLSv1"
         );
 

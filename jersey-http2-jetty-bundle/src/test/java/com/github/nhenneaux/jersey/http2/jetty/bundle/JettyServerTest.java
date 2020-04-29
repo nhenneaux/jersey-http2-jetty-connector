@@ -48,9 +48,9 @@ public class JettyServerTest {
 
     static JettyServer.TlsSecurityConfiguration tlsConfig() {
         return new JettyServer.TlsSecurityConfiguration(
-                getKeyStore("TEST==ONLY==jks-keystore-password".toCharArray(), "keystore.jks"),
+                getKeyStore("TEST==ONLY==jks-keystore-password".toCharArray(), "keystore.p12"),
                 "server",
-                "TEST==ONLY==vXzZO7sjy3jP4U7tDlihgOaf+WLlA7/vqnqlkLZzzQo=",
+                "TEST==ONLY==jks-keystore-password",
                 "TLSv1.2"
         );
     }
