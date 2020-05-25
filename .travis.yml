@@ -6,7 +6,7 @@ jdk:
   - openjdk11
   - openjdk12
   - openjdk13
-  # Not supported by sonar - openjdk14
+  - openjdk14
 sudo: false # faster builds
 
 addons:

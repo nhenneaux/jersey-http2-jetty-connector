@@ -21,8 +21,8 @@
 
         <skipRelease>true</skipRelease>
 
-        <jersey.version>2.30.1</jersey.version>
-        <jetty.version>9.4.28.v20200408</jetty.version>
+        <jersey.version>2.31</jersey.version>
+        <jetty.version>9.4.29.v20200521</jetty.version>
     </properties>
 
 
