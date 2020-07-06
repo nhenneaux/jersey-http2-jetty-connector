@@ -11,7 +11,10 @@
     <packaging>pom</packaging>
 
     <name>JAX-RS HTTP/2 example for Java 8, 9, 10, 11, 12 &amp; 13</name>
-    <description>JAX-RS (Jersey implementation) HTTP/2 with TLS client and server implementation with JSON parsing using Jackson and Jetty HTTP server/client. a new class JettyHttp2Connector is implemented based on the corresponding JettyConnector using HTTP/1.1 client (Inspired from the stackoverflow answer).</description>
+    <description>JAX-RS (Jersey implementation) HTTP/2 with TLS client and server implementation with JSON parsing using
+        Jackson and Jetty HTTP server/client. a new class JettyHttp2Connector is implemented based on the corresponding
+        JettyConnector using HTTP/1.1 client (Inspired from the stackoverflow answer).
+    </description>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -45,7 +48,7 @@
         <profile>
             <id>java8</id>
             <activation>
-                <jdk>1.8</jdk>
+                <jdk>(,1.8_252]</jdk>
             </activation>
             <properties>
                 <alpn-boot.version>8.1.13.v20181017</alpn-boot.version>
@@ -69,18 +72,19 @@
                     <groupId>org.eclipse.jetty</groupId>
                     <artifactId>jetty-alpn-openjdk8-client</artifactId>
                     <version>${jetty.version}</version>
-                </dependency><dependency>
-                <groupId>org.hamcrest</groupId>
-                <artifactId>hamcrest</artifactId>
-                <version>2.2</version>
-                <scope>test</scope>
-            </dependency>
+                </dependency>
+                <dependency>
+                    <groupId>org.hamcrest</groupId>
+                    <artifactId>hamcrest</artifactId>
+                    <version>2.2</version>
+                    <scope>test</scope>
+                </dependency>
             </dependencies>
         </profile>
         <profile>
-            <id>java9+</id>
+            <id>java8_252+</id>
             <activation>
-                <jdk>[1.9,)</jdk>
+                <jdk>[1.8_252,)</jdk>
             </activation>
             <dependencies>
                 <dependency>
@@ -97,7 +101,7 @@
                 <dependency>
                     <groupId>javax.annotation</groupId>
                     <artifactId>javax.annotation-api</artifactId>
-                    <version>1.3.2</version>
+                    <version>1.3.5</version>
                 </dependency>
                 <dependency>
                     <groupId>javax.activation</groupId>
