@@ -21,7 +21,8 @@ import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.servlet.ServletContainer;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import javax.ws.rs.ProcessingException;
 import javax.ws.rs.client.ClientBuilder;
@@ -43,8 +44,8 @@ import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Test TLS encryption between a client and a server JAX-RS.
@@ -61,8 +62,8 @@ public class Http2Test {
      */
     private static final List<String> WEAK_PROTOCOLS = Collections.unmodifiableList(Arrays.asList("SSL", "SSLv2", "SSLv2Hello", "SSLv3", "TLSv1", "TLSv1.1"));
 
-    private static <T> T getClient(int port, KeyStore trustStore, Class<T> clazz) {
-        return getClient(port, trustStore, clazz, http2ClientConfig());
+    private static DummyRestApi getClient(int port, KeyStore trustStore) {
+        return getClient(port, trustStore, http2ClientConfig());
     }
 
     private static ClientConfig http2ClientConfig() {
@@ -71,9 +72,9 @@ public class Http2Test {
                 .connectorProvider(JettyHttp2Connector::new);
     }
 
-    private static <T> T getClient(int port, KeyStore trustStore, Class<T> clazz, ClientConfig configuration) {
+    private static DummyRestApi getClient(int port, KeyStore trustStore, ClientConfig configuration) {
         return WebResourceFactory.newResource(
-                clazz,
+                DummyRestApi.class,
                 ClientBuilder.newBuilder()
                         .register(new JacksonJsonProvider())
                         .trustStore(trustStore)
@@ -184,7 +185,8 @@ public class Http2Test {
                 new HttpConnectionFactory(httpsConfig)};
     }
 
-    @Test(timeout = 20_000)
+    @Test
+    @Timeout(20)
     public void testValidTls() throws Exception {
         int port = PORT;
         TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
@@ -192,7 +194,7 @@ public class Http2Test {
                 port,
                 tlsSecurityConfiguration,
                 DummyRestService.class)) {
-            DummyRestApi.Data hello = getClient(port, getKeyStore("jks-password".toCharArray(), "truststore.jks"), DummyRestApi.class).hello();
+            DummyRestApi.Data hello = getClient(port, getKeyStore("jks-password".toCharArray(), "truststore.jks")).hello();
             assertEquals(DummyRestService.helloMessage, hello.getData());
         }
     }
@@ -206,12 +208,15 @@ public class Http2Test {
         );
     }
 
-    @Test(timeout = 60_000)
+    @Test
+    @Timeout(60)
     public void testConcurrent() throws Exception {
         testConcurrent(http2ClientConfig());
     }
 
-    @Test(timeout = 60_000)
+    @Test
+
+    @Timeout(60)
     public void testConcurrentHttp1() throws Exception {
         testConcurrent(new ClientConfig().property(JettyClientProperties.ENABLE_SSL_HOSTNAME_VERIFICATION, Boolean.TRUE));
     }
@@ -226,13 +231,13 @@ public class Http2Test {
                 tlsSecurityConfiguration,
                 DummyRestService.class)) {
             // Warmup
-            getClient(port, truststore, DummyRestApi.class, clientConfig).hello();
+            getClient(port, truststore, clientConfig).hello();
 
             final int nThreads = 4;
             final int iterations = 10_000;
             AtomicInteger counter = new AtomicInteger();
             final Runnable runnable = () -> {
-                final DummyRestApi client = getClient(port, truststore, DummyRestApi.class, clientConfig);
+                final DummyRestApi client = getClient(port, truststore, clientConfig);
                 final long start = System.currentTimeMillis();
                 for (int i = 0; i < iterations; i++) {
                     client.hello();
@@ -271,12 +276,14 @@ public class Http2Test {
                     @SuppressWarnings("unused") WeldContainer container = new Weld().initialize();
                     AutoCloseable ignored = jerseyServer(port, tlsSecurityConfiguration, DummyRestService.class)
             ) {
-                assertEquals(DummyRestService.helloMessage, getClient(port, truststore, DummyRestApi.class).hello().getData());
+                assertEquals(DummyRestService.helloMessage, getClient(port, truststore).hello().getData());
             }
         }
     }
 
-    @Test(timeout = 20_000)
+    @Test
+
+    @Timeout(20)
     public void testExpiredTls() throws Exception {
         int port = PORT;
         TlsSecurityConfiguration tlsSecurityConfiguration = new TlsSecurityConfiguration(
@@ -290,7 +297,7 @@ public class Http2Test {
                 tlsSecurityConfiguration,
                 DummyRestService.class)) {
             try {
-                getClient(port, getKeyStore("jks-password".toCharArray(), "truststore.jks"), DummyRestApi.class).hello();
+                getClient(port, getKeyStore("jks-password".toCharArray(), "truststore.jks")).hello();
                 fail();
             } catch (ProcessingException expected) {
                 assertThat(expected.getMessage(), anyOf(
@@ -304,7 +311,8 @@ public class Http2Test {
         }
     }
 
-    @Test(timeout = 10_000)
+    @Test
+    @Timeout(10)
     public void testInvalidAddressTls() throws Exception {
         int port = PORT;
         TlsSecurityConfiguration tlsSecurityConfiguration = new TlsSecurityConfiguration(
@@ -317,7 +325,7 @@ public class Http2Test {
                 port,
                 tlsSecurityConfiguration,
                 DummyRestService.class)) {
-            getClient(port, getKeyStore("jks-password".toCharArray(), "truststore.jks"), DummyRestApi.class).hello();
+            getClient(port, getKeyStore("jks-password".toCharArray(), "truststore.jks")).hello();
             fail();
         } catch (ProcessingException expected) {
             assertThat(expected.getMessage(), anyOf(
@@ -365,7 +373,7 @@ public class Http2Test {
                 port,
                 tlsSecurityConfiguration,
                 DummyRestService.class)) {
-            getClient(port, getKeyStore("jks-password".toCharArray(), "truststore.jks"), DummyRestApi.class).hello();
+            getClient(port, getKeyStore("jks-password".toCharArray(), "truststore.jks")).hello();
             fail();
         } catch (IllegalStateException e) {
             assertEquals("java.security.UnrecoverableKeyException: Get Key failed: Given final block not properly padded. Such issues can arise if a bad key is used during decryption.", e.getMessage());
@@ -386,7 +394,7 @@ public class Http2Test {
                 port,
                 tlsSecurityConfiguration,
                 DummyRestService.class)) {
-            getClient(port, getKeyStore("jks-password".toCharArray(), "truststore.jks"), DummyRestApi.class).hello();
+            getClient(port, getKeyStore("jks-password".toCharArray(), "truststore.jks")).hello();
             fail();
         } catch (ProcessingException ignored) {
         }

@@ -5,7 +5,8 @@ import org.glassfish.jersey.jetty.connector.JettyClientProperties;
 import org.glassfish.jersey.jetty.connector.JettyHttp2Connector;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.WebTarget;
@@ -17,7 +18,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static com.github.nhenneaux.jersey.http2.jetty.bundle.JettyServer.TlsSecurityConfiguration.getKeyStore;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SuppressWarnings("squid:S00112")
 public class JettyServerTest {
@@ -55,7 +56,8 @@ public class JettyServerTest {
         );
     }
 
-    @Test(timeout = 20_000)
+    @Test
+    @Timeout(20)
     public void testValidTls() throws Exception {
         int port = PORT;
         JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
@@ -68,12 +70,14 @@ public class JettyServerTest {
         }
     }
 
-    @Test(timeout = 60_000)
+    @Test
+    @Timeout(60)
     public void testConcurrent() throws Exception {
         testConcurrent(http2ClientConfig());
     }
 
-    @Test(timeout = 60_000)
+    @Test
+    @Timeout(60)
     public void testConcurrentHttp1() throws Exception {
         testConcurrent(new ClientConfig().property(JettyClientProperties.ENABLE_SSL_HOSTNAME_VERIFICATION, Boolean.TRUE));
     }
