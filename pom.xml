@@ -10,10 +10,11 @@
 
     <packaging>pom</packaging>
 
-    <name>JAX-RS HTTP/2 example for Java 8, 9, 10, 11, 12 &amp; 13</name>
+    <name>JAX-RS HTTP/2 example for Java 8+</name>
     <description>JAX-RS (Jersey implementation) HTTP/2 with TLS client and server implementation with JSON parsing using
         Jackson and Jetty HTTP server/client. a new class JettyHttp2Connector is implemented based on the corresponding
-        JettyConnector using HTTP/1.1 client (Inspired from the stackoverflow answer).
+        JettyConnector using HTTP/1.1 client (Inspired from
+        https://stackoverflow.com/questions/40280843/use-http-2-with-jax-rs-client).
     </description>
 
     <properties>
@@ -26,7 +27,6 @@
 
         <jersey.version>2.31</jersey.version>
         <jetty.version>9.4.30.v20200611</jetty.version>
-
 
         <jakarta.activation.version>1.2.2</jakarta.activation.version>
         <jakarta.annotation.version>1.3.5</jakarta.annotation.version>
