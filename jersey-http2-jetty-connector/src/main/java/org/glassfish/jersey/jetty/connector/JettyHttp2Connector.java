@@ -213,8 +213,8 @@ public class JettyHttp2Connector implements Connector {
         }
     }
 
-    private static Map<String, String> writeOutBoundHeaders(final MultivaluedMap<String, Object> headers, final Request request) {
-        final Map<String, String> stringHeaders = HeaderUtils.asStringHeadersSingleValue(headers);
+    private static Map<String, String> writeOutBoundHeaders(final MultivaluedMap<String, Object> headers, final Request request, Configuration configuration) {
+        final Map<String, String> stringHeaders = HeaderUtils.asStringHeadersSingleValue(headers, configuration);
 
         // remove User-agent header set by Jetty; Jersey already sets this in its request (incl. Jetty version)
         request.getHeaders().remove(HttpHeader.USER_AGENT);
@@ -261,7 +261,7 @@ public class JettyHttp2Connector implements Connector {
         final Request jettyRequest = translateRequest(jerseyRequest);
         final ContentProvider entity = getBytesProvider(jerseyRequest);
         // This line has been moved below the previous line such that the writer interceptor can change the headers
-        final Map<String, String> clientHeadersSnapshot = writeOutBoundHeaders(jerseyRequest.getHeaders(), jettyRequest);
+        final Map<String, String> clientHeadersSnapshot = writeOutBoundHeaders(jerseyRequest.getHeaders(), jettyRequest, jerseyRequest.getConfiguration());
         if (entity != null) {
             jettyRequest.content(entity);
         }
@@ -269,7 +269,7 @@ public class JettyHttp2Connector implements Connector {
         try {
             final ContentResponse jettyResponse = jettyRequest.send();
             HeaderUtils.checkHeaderChanges(clientHeadersSnapshot, jerseyRequest.getHeaders(),
-                    JettyHttp2Connector.this.getClass().getName());
+                    JettyHttp2Connector.this.getClass().getName(), jerseyRequest.getConfiguration());
 
             final javax.ws.rs.core.Response.StatusType status = jettyResponse.getReason() == null
                     ? Statuses.from(jettyResponse.getStatus())
@@ -346,7 +346,7 @@ public class JettyHttp2Connector implements Connector {
     @SuppressWarnings("squid:S1181") // Throwable and Error should not be caught
     public Future<?> apply(final ClientRequest jerseyRequest, final AsyncConnectorCallback callback) {
         final Request jettyRequest = translateRequest(jerseyRequest);
-        final Map<String, String> clientHeadersSnapshot = writeOutBoundHeaders(jerseyRequest.getHeaders(), jettyRequest);
+        final Map<String, String> clientHeadersSnapshot = writeOutBoundHeaders(jerseyRequest.getHeaders(), jettyRequest, jerseyRequest.getConfiguration());
         final ContentProvider entity = getStreamProvider(jerseyRequest);
         if (entity != null) {
             jettyRequest.content(entity);
@@ -373,7 +373,7 @@ public class JettyHttp2Connector implements Connector {
                 @Override
                 public void onHeaders(final Response jettyResponse) {
                     HeaderUtils.checkHeaderChanges(clientHeadersSnapshot, jerseyRequest.getHeaders(),
-                            JettyHttp2Connector.this.getClass().getName());
+                            JettyHttp2Connector.this.getClass().getName(), jerseyRequest.getConfiguration());
 
                     if (responseFuture.isDone() && !callbackInvoked.compareAndSet(false, true)) {
                         return;

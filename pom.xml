@@ -6,12 +6,15 @@
 
     <groupId>com.github.nhenneaux.jersey.jetty.http2</groupId>
     <artifactId>jersey-http2-jetty</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2-SNAPSHOT</version>
 
     <packaging>pom</packaging>
 
     <name>JAX-RS HTTP/2 example for Java 8, 9, 10, 11, 12 &amp; 13</name>
-    <description>JAX-RS (Jersey implementation) HTTP/2 with TLS client and server implementation with JSON parsing using Jackson and Jetty HTTP server/client. a new class JettyHttp2Connector is implemented based on the corresponding JettyConnector using HTTP/1.1 client (Inspired from the stackoverflow answer).</description>
+    <description>JAX-RS (Jersey implementation) HTTP/2 with TLS client and server implementation with JSON parsing using
+        Jackson and Jetty HTTP server/client. a new class JettyHttp2Connector is implemented based on the corresponding
+        JettyConnector using HTTP/1.1 client (Inspired from the stackoverflow answer).
+    </description>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -22,7 +25,13 @@
         <skipRelease>true</skipRelease>
 
         <jersey.version>2.31</jersey.version>
-        <jetty.version>9.4.29.v20200521</jetty.version>
+        <jetty.version>9.4.30.v20200611</jetty.version>
+
+
+        <jakarta.activation.version>1.2.2</jakarta.activation.version>
+        <jakarta.annotation.version>1.3.5</jakarta.annotation.version>
+        <jakarta.xml.bind.version>2.3.2</jakarta.xml.bind.version>
+        <jakarta.el-api.version>3.0.3</jakarta.el-api.version>
     </properties>
 
 
@@ -31,35 +40,27 @@
         <module>jersey-http2-jetty-bundle</module>
     </modules>
 
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>junit</groupId>
-                <artifactId>junit</artifactId>
-                <version>4.13</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
-
+    <dependencies>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.6.2</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest</artifactId>
+            <version>2.2</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
     <profiles>
         <profile>
             <id>java8</id>
             <activation>
                 <jdk>1.8</jdk>
             </activation>
-            <properties>
-                <alpn-boot.version>8.1.13.v20181017</alpn-boot.version>
-                <argLine>
-                    -Xbootclasspath/p:${settings.localRepository}/org/mortbay/jetty/alpn/alpn-boot/${alpn-boot.version}/alpn-boot-${alpn-boot.version}.jar
-                </argLine>
-            </properties>
             <dependencies>
-                <dependency>
-                    <groupId>org.mortbay.jetty.alpn</groupId>
-                    <artifactId>alpn-boot</artifactId>
-                    <version>${alpn-boot.version}</version>
-                    <scope>provided</scope>
-                </dependency>
                 <dependency>
                     <groupId>org.eclipse.jetty</groupId>
                     <artifactId>jetty-alpn-openjdk8-server</artifactId>
@@ -69,12 +70,7 @@
                     <groupId>org.eclipse.jetty</groupId>
                     <artifactId>jetty-alpn-openjdk8-client</artifactId>
                     <version>${jetty.version}</version>
-                </dependency><dependency>
-                <groupId>org.hamcrest</groupId>
-                <artifactId>hamcrest</artifactId>
-                <version>2.2</version>
-                <scope>test</scope>
-            </dependency>
+                </dependency>
             </dependencies>
         </profile>
         <profile>
@@ -95,24 +91,33 @@
                 </dependency>
                 <!-- Previously packaged libraries inside JDK -->
                 <dependency>
-                    <groupId>javax.annotation</groupId>
-                    <artifactId>javax.annotation-api</artifactId>
-                    <version>1.3.2</version>
+                    <groupId>jakarta.activation</groupId>
+                    <artifactId>jakarta.activation-api</artifactId>
+                    <version>${jakarta.activation.version}</version>
+                    <scope>provided</scope>
                 </dependency>
                 <dependency>
-                    <groupId>javax.activation</groupId>
-                    <artifactId>javax.activation-api</artifactId>
-                    <version>1.2.0</version>
+                    <groupId>com.sun.activation</groupId>
+                    <artifactId>jakarta.activation</artifactId>
+                    <version>${jakarta.activation.version}</version>
                 </dependency>
+
                 <dependency>
-                    <groupId>javax.xml.bind</groupId>
-                    <artifactId>jaxb-api</artifactId>
-                    <version>2.3.0</version>
+                    <groupId>jakarta.annotation</groupId>
+                    <artifactId>jakarta.annotation-api</artifactId>
+                    <version>${jakarta.annotation.version}</version>
                 </dependency>
+
+                <dependency>
+                    <groupId>jakarta.xml.bind</groupId>
+                    <artifactId>jakarta.xml.bind-api</artifactId>
+                    <version>${jakarta.xml.bind.version}</version>
+                </dependency>
+
                 <dependency>
                     <groupId>org.glassfish.jaxb</groupId>
                     <artifactId>jaxb-runtime</artifactId>
-                    <version>2.3.0</version>
+                    <version>${jakarta.xml.bind.version}</version>
                 </dependency>
             </dependencies>
         </profile>
@@ -132,6 +137,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
+                <version>3.2.1</version>
                 <executions>
                     <execution>
                         <id>attach-sources</id>
@@ -144,6 +150,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.2.0</version>
                 <configuration>
                     <skip>${skipRelease}</skip>
                 </configuration>
@@ -199,19 +206,10 @@
 
         <pluginManagement>
             <plugins>
-
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>3.8.1</version>
-                </plugin>
-                <plugin>
-                    <artifactId>maven-source-plugin</artifactId>
-                    <version>3.2.0</version>
-                </plugin>
-                <plugin>
-                    <artifactId>maven-javadoc-plugin</artifactId>
-                    <version>3.1.1</version>
                 </plugin>
                 <plugin>
                     <artifactId>maven-deploy-plugin</artifactId>
