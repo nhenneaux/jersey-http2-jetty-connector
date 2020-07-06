@@ -21,7 +21,7 @@ import static com.github.nhenneaux.jersey.http2.jetty.bundle.JettyServer.TlsSecu
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SuppressWarnings("squid:S00112")
-public class JettyServerTest {
+class JettyServerTest {
     static final int PORT = 2223;
     private static final String PING = "/ping";
 
@@ -58,7 +58,7 @@ public class JettyServerTest {
 
     @Test
     @Timeout(20)
-    public void testValidTls() throws Exception {
+    void testValidTls() throws Exception {
         int port = PORT;
         JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
         try (AutoCloseable ignored = jerseyServer(
@@ -72,13 +72,13 @@ public class JettyServerTest {
 
     @Test
     @Timeout(60)
-    public void testConcurrent() throws Exception {
+    void testConcurrent() throws Exception {
         testConcurrent(http2ClientConfig());
     }
 
     @Test
     @Timeout(60)
-    public void testConcurrentHttp1() throws Exception {
+    void testConcurrentHttp1() throws Exception {
         testConcurrent(new ClientConfig().property(JettyClientProperties.ENABLE_SSL_HOSTNAME_VERIFICATION, Boolean.TRUE));
     }
 
@@ -128,7 +128,7 @@ public class JettyServerTest {
     }
 
     @Test
-    public void shouldWorkInLoop() throws Exception {
+    void shouldWorkInLoop() throws Exception {
         int port = PORT;
         JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
         for (int i = 0; i < 100; i++) {
