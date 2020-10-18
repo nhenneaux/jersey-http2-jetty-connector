@@ -25,7 +25,7 @@
 
         <skipRelease>true</skipRelease>
 
-        <jersey.version>2.31</jersey.version>
+        <jersey.version>2.32</jersey.version>
         <jetty.version>9.4.31.v20200723</jetty.version>
 
         <jakarta.activation.version>1.2.2</jakarta.activation.version>
