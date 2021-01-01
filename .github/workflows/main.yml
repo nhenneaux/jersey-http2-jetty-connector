@@ -32,7 +32,7 @@ jobs:
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
       - name: Build with Maven
-        run: mvn -B -C verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar "-Dsonar.projectKey=nhenneaux_jersey-http2-jetty"
+        run: mvn -B -C verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar "-Dsonar.projectKey=nhenneaux_jersey-http2-jetty-connector"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
