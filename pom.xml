@@ -6,7 +6,7 @@
 
     <groupId>com.github.nhenneaux.jersey.jetty.http2</groupId>
     <artifactId>jersey-http2-jetty</artifactId>
-    <version>1.0.5-SNAPSHOT</version>
+    <version>1.0.5</version>
 
     <packaging>pom</packaging>
 
@@ -23,9 +23,13 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
 
+        <sonar.projectKey>nhenneaux_jersey-http2-jetty</sonar.projectKey>
+        <sonar.organization>nhenneaux</sonar.organization>
+        <sonar.host.url>https://sonarcloud.io</sonar.host.url>
+
         <skipRelease>true</skipRelease>
 
-        <jersey.version>2.32</jersey.version>
+        <jersey.version>2.33</jersey.version>
         <jetty.version>9.4.35.v20201120</jetty.version>
 
         <jakarta.activation.version>1.2.2</jakarta.activation.version>
@@ -128,7 +132,7 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.5</version>
+                <version>0.8.6</version>
                 <executions>
                     <execution>
                         <id>prepare-agent</id>
@@ -263,8 +267,8 @@
 
     <licenses>
         <license>
-            <name>GNU General Public License (GPL)</name>
-            <url>http://www.gnu.org/licenses/gpl-3.0.txt</url>
+            <name>GNU LGPL 3</name>
+            <url>http://www.gnu.org/licenses/lgpl.txt</url>
             <distribution>repo</distribution>
         </license>
     </licenses>
