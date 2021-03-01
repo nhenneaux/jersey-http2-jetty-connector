@@ -63,6 +63,10 @@
             <activation>
                 <jdk>1.8</jdk>
             </activation>
+            <properties>
+                <!-- Sonar is not compatible with Java 8-->
+                <sonar.skip>true</sonar.skip>
+            </properties>
             <dependencies>
                 <dependency>
                     <groupId>org.eclipse.jetty</groupId>
