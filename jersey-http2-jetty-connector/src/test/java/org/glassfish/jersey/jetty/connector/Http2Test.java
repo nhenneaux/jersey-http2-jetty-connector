@@ -142,7 +142,7 @@ class Http2Test {
     private static KeyStore getKeyStore(char[] password, String keystoreClasspathLocation) {
         KeyStore keystore;
         try {
-            keystore = KeyStore.getInstance(KeyStore.getDefaultType());
+            keystore = KeyStore.getInstance(keystoreClasspathLocation.endsWith("p12") ? "PKCS12" : "JKS");
         } catch (KeyStoreException e) {
             throw new IllegalStateException(e);
         }
@@ -194,16 +194,16 @@ class Http2Test {
                 port,
                 tlsSecurityConfiguration,
                 DummyRestService.class)) {
-            DummyRestApi.Data hello = getClient(port, getKeyStore("jks-password".toCharArray(), "truststore.jks")).hello();
+            DummyRestApi.Data hello = getClient(port, getTrustStore()).hello();
             assertEquals(DummyRestService.helloMessage, hello.getData());
         }
     }
 
     private TlsSecurityConfiguration tlsConfig() {
         return new TlsSecurityConfiguration(
-                getKeyStore("TEST==ONLY==jks-keystore-password".toCharArray(), "keystore.p12"),
-                "server",
-                "TEST==ONLY==jks-keystore-password",
+                getKeyStore("TEST==ONLY==key-store-password".toCharArray(), "keystore.p12"),
+                "localhost with alternate ip",
+                "TEST==ONLY==key-store-password",
                 "TLSv1.2"
         );
     }
@@ -225,7 +225,7 @@ class Http2Test {
     private void testConcurrent(ClientConfig clientConfig) throws Exception {
         int port = PORT;
         TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
-        final KeyStore truststore = getKeyStore("jks-password".toCharArray(), "truststore.jks");
+        final KeyStore truststore = getTrustStore();
         try (AutoCloseable ignored = jerseyServer(
                 port,
                 tlsSecurityConfiguration,
@@ -270,7 +270,7 @@ class Http2Test {
     void shouldWorkInLoop() throws Exception {
         int port = PORT;
         TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
-        final KeyStore truststore = getKeyStore("jks-password".toCharArray(), "truststore.jks");
+        final KeyStore truststore = getTrustStore();
         for (int i = 0; i < 100; i++) {
             try (
                     @SuppressWarnings("unused") WeldContainer container = new Weld().initialize();
@@ -292,12 +292,13 @@ class Http2Test {
                 "aXeDUspU3AvUkaf5$a",
                 "TLSv1.2"
         );
+        DummyRestApi client = getClient(port, getTrustStore());
         try (AutoCloseable ignored = jerseyServer(
                 port,
                 tlsSecurityConfiguration,
                 DummyRestService.class)) {
             try {
-                getClient(port, getKeyStore("jks-password".toCharArray(), "truststore.jks")).hello();
+                client.hello();
                 fail();
             } catch (ProcessingException expected) {
                 assertThat(expected.getMessage(), anyOf(
@@ -321,11 +322,12 @@ class Http2Test {
                 "VuqEvasaFr!mA3$W2Tr",
                 "TLSv1.2"
         );
+        DummyRestApi client = getClient(port, getTrustStore());
         try (AutoCloseable ignored = jerseyServer(
                 port,
                 tlsSecurityConfiguration,
                 DummyRestService.class)) {
-            getClient(port, getKeyStore("jks-password".toCharArray(), "truststore.jks")).hello();
+            client.hello();
             fail();
         } catch (ProcessingException expected) {
             assertThat(expected.getMessage(), anyOf(
@@ -342,16 +344,17 @@ class Http2Test {
     void testNoTrustStoreTls() throws Exception {
         int port = PORT;
         TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
+        DummyRestApi dummyRestApi = WebResourceFactory.newResource(
+                DummyRestApi.class,
+                ClientBuilder.newBuilder()
+                        .register(new JacksonJsonProvider())
+                        .build()
+                        .target("https://localhost:" + port));
         try (AutoCloseable ignored = jerseyServer(
                 port,
                 tlsSecurityConfiguration,
                 DummyRestService.class)) {
-            WebResourceFactory.newResource(
-                    DummyRestApi.class,
-                    ClientBuilder.newBuilder()
-                            .register(new JacksonJsonProvider())
-                            .build()
-                            .target("https://localhost:" + port)).hello();
+            dummyRestApi.hello();
             fail();
         } catch (ProcessingException e) {
             assertThat(e.getMessage(), containsString("PKIX path building failed: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested target"));
@@ -363,38 +366,44 @@ class Http2Test {
     void testWrongPasswordTls() throws Exception {
         int port = PORT;
         TlsSecurityConfiguration tlsSecurityConfiguration = new TlsSecurityConfiguration(
-                getKeyStore("TEST==ONLY==jks-keystore-password".toCharArray(), "keystore.p12"),
+                getKeyStore("TEST==ONLY==key-store-password".toCharArray(), "keystore.p12"),
                 "server",
-                "TEST==ONLY==jks-keystore-password_wrong",
+                "TEST==ONLY==key-store-password_wrong",
                 "TLSv1.2"
         );
 
+        DummyRestApi client = getClient(port, getTrustStore());
         try (AutoCloseable ignored = jerseyServer(
                 port,
                 tlsSecurityConfiguration,
                 DummyRestService.class)) {
-            getClient(port, getKeyStore("jks-password".toCharArray(), "truststore.jks")).hello();
+            client.hello();
             fail();
         } catch (IllegalStateException e) {
             assertEquals("java.security.UnrecoverableKeyException: Get Key failed: Given final block not properly padded. Such issues can arise if a bad key is used during decryption.", e.getMessage());
         }
     }
 
+    private KeyStore getTrustStore() {
+        return getKeyStore("TEST==ONLY==truststore-password".toCharArray(), "truststore.p12");
+    }
+
     @Test
     void testDeprecatedTls() throws Exception {
         int port = PORT;
         TlsSecurityConfiguration tlsSecurityConfiguration = new TlsSecurityConfiguration(
-                getKeyStore("TEST==ONLY==jks-keystore-password".toCharArray(), "keystore.p12"),
+                getKeyStore("TEST==ONLY==key-store-password".toCharArray(), "keystore.p12"),
                 "server",
-                "TEST==ONLY==jks-keystore-password",
+                "TEST==ONLY==key-store-password",
                 "TLSv1"
         );
 
+        DummyRestApi client = getClient(port, getTrustStore());
         try (AutoCloseable ignored = jerseyServer(
                 port,
                 tlsSecurityConfiguration,
                 DummyRestService.class)) {
-            getClient(port, getKeyStore("jks-password".toCharArray(), "truststore.jks")).hello();
+            client.hello();
             fail();
         } catch (ProcessingException ignored) {
         }

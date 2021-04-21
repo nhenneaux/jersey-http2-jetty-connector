@@ -8,9 +8,9 @@ public class Bootstrap {
 
     public static void main(String[] args) throws IOException {
         JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = new JettyServer.TlsSecurityConfiguration(
-                getKeyStore("TEST==ONLY==jks-keystore-password".toCharArray(), "keystore.p12"),
+                getKeyStore("TEST==ONLY==key-store-password".toCharArray(), "keystore.p12"),
                 "server",
-                "TEST==ONLY==jks-keystore-password",
+                "TEST==ONLY==key-store-password",
                 "TLSv1.2"
         );
         try (JettyServer ignored = new JettyServer(8080, tlsSecurityConfiguration, DummyRestService.class)) {

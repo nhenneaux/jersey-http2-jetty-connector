@@ -44,14 +44,14 @@ class JettyServerTest {
     }
 
     static WebTarget getClient(int port) {
-        return getClient(port, getKeyStore("jks-password".toCharArray(), "truststore.jks"), http2ClientConfig());
+        return getClient(port, getKeyStore("TEST==ONLY==truststore-password".toCharArray(), "truststore.p12"), http2ClientConfig());
     }
 
     static JettyServer.TlsSecurityConfiguration tlsConfig() {
         return new JettyServer.TlsSecurityConfiguration(
-                getKeyStore("TEST==ONLY==jks-keystore-password".toCharArray(), "keystore.p12"),
-                "server",
-                "TEST==ONLY==jks-keystore-password",
+                getKeyStore("TEST==ONLY==key-store-password".toCharArray(), "keystore.p12"),
+                "localhost with alternate ip",
+                "TEST==ONLY==key-store-password",
                 "TLSv1.2"
         );
     }
@@ -86,7 +86,7 @@ class JettyServerTest {
     private void testConcurrent(ClientConfig clientConfig) throws Exception {
         int port = PORT;
         JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
-        final KeyStore truststore = getKeyStore("jks-password".toCharArray(), "truststore.jks");
+        final KeyStore truststore = getKeyStore("TEST==ONLY==truststore-password".toCharArray(), "truststore.p12");
         try (AutoCloseable ignored = jerseyServer(
                 port,
                 tlsSecurityConfiguration,
