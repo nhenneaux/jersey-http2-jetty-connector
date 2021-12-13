@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.github.nhenneaux.jersey.jetty.http2</groupId>
         <artifactId>jersey-http2-jetty</artifactId>
-        <version>1.0.8</version>
+        <version>1.0.9</version>
     </parent>
 
     <artifactId>jersey-http2-jetty-connector</artifactId>
@@ -37,7 +37,7 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>1.7.30</version>
+            <version>1.7.32</version>
         </dependency>
 
 
