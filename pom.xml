@@ -6,7 +6,7 @@
 
     <groupId>com.github.nhenneaux.jersey.jetty.http2</groupId>
     <artifactId>jersey-http2-jetty</artifactId>
-    <version>1.0.9</version>
+    <version>1.0.10</version>
 
     <packaging>pom</packaging>
 
@@ -226,8 +226,15 @@
                     <nexusUrl>https://oss.sonatype.org/</nexusUrl>
                     <!-- Set this to true and the release will automatically proceed and -->
                     <!-- sync to Central Repository will follow -->
-                    <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                    <autoReleaseAfterClose>false</autoReleaseAfterClose>
                 </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.thoughtworks.xstream</groupId>
+                        <artifactId>xstream</artifactId>
+                        <version>1.4.15</version> <!-- apparently this needs to be exactly this version -->
+                    </dependency>
+                </dependencies>
             </plugin>
         </plugins>
 
