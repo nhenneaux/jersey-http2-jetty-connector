@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.github.nhenneaux.jersey.jetty.http2</groupId>
         <artifactId>jersey-http2-jetty</artifactId>
-        <version>1.0.13</version>
+        <version>1.0.15</version>
     </parent>
 
     <artifactId>jersey-http2-jetty-connector</artifactId>
