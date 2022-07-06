@@ -6,7 +6,7 @@
 
     <groupId>com.github.nhenneaux.jersey.jetty.http2</groupId>
     <artifactId>jersey-http2-jetty</artifactId>
-    <version>1.0.14</version>
+    <version>1.0.15</version>
 
     <packaging>pom</packaging>
 
@@ -192,7 +192,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-gpg-plugin</artifactId>
-                <version>1.6</version>
+                <version>3.0.1</version>
                 <configuration>
                     <skip>${skipRelease}</skip>
                 </configuration>
@@ -204,7 +204,7 @@
                             <goal>sign</goal>
                         </goals>
                         <configuration>
-                            <keyname>46E20128E3A624C11FFF6B95D1BA17265A0E8512</keyname>
+                            <keyname>24CB0C2DAB84FC5C84BC0631A41ACFF32C0A49B9</keyname>
                             <!-- Configuration to prevent the 'Signing Prompt' or the  -->
                             <!-- 'gpg: signing failed: No such file or directory' error -->
                             <!-- See https://myshittycode.com/2017/08/07/maven-gpg-plugin-prevent-signing-prompt-or-gpg-signing-failed-no-such-file-or-directory-error/ -->
