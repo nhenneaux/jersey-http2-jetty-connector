@@ -28,6 +28,7 @@ import org.eclipse.jetty.client.api.Response;
 import org.eclipse.jetty.client.api.Result;
 import org.eclipse.jetty.client.util.BasicAuthentication;
 import org.eclipse.jetty.client.util.BytesContentProvider;
+import org.eclipse.jetty.client.util.FutureResponseListener;
 import org.eclipse.jetty.client.util.OutputStreamContentProvider;
 import org.eclipse.jetty.http.HttpField;
 import org.eclipse.jetty.http.HttpFields;
@@ -41,6 +42,7 @@ import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.glassfish.jersey.client.ClientProperties;
 import org.glassfish.jersey.client.ClientRequest;
 import org.glassfish.jersey.client.ClientResponse;
+import org.glassfish.jersey.client.innate.ClientProxy;
 import org.glassfish.jersey.client.spi.AsyncConnectorCallback;
 import org.glassfish.jersey.client.spi.Connector;
 import org.glassfish.jersey.internal.util.collection.ByteBufferInputStream;
@@ -65,6 +67,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
@@ -125,6 +128,7 @@ public class JettyHttp2Connector implements Connector {
 
     private final HttpClient client;
     private final CookieStore cookieStore;
+    private final Integer syncListenerResponseMaxSize;
 
     /**
      * Create the new Jetty client connector.
@@ -132,25 +136,20 @@ public class JettyHttp2Connector implements Connector {
      * @param jaxrsClient JAX-RS client instance, for which the connector is created.
      * @param config      client configuration.
      */
+
     public JettyHttp2Connector(final Client jaxrsClient, final Configuration config) {
         this(new HttpClientTransportOverHTTP2(new HTTP2Client()), jaxrsClient, config);
     }
 
     JettyHttp2Connector(HttpClientTransport transport, final Client jaxrsClient, final Configuration config) {
-        final SSLContext sslContext = jaxrsClient.getSslContext();
-        final SslContextFactory sslContextFactory = new SslContextFactory.Server();
-        sslContextFactory.setSslContext(sslContext);
-        sslContextFactory.setExcludeCipherSuites("TLS_NULL_WITH_NULL_NULL", "TLS_RSA_WITH_NULL_MD5", "TLS_RSA_WITH_NULL_SHA", "TLS_RSA_EXPORT_WITH_RC4_40_MD5", "TLS_RSA_WITH_RC4_128_MD5", "TLS_RSA_WITH_RC4_128_SHA", "TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5", "TLS_RSA_WITH_IDEA_CBC_SHA", "TLS_RSA_EXPORT_WITH_DES40_CBC_SHA", "TLS_RSA_WITH_DES_CBC_SHA", "TLS_RSA_WITH_3DES_EDE_CBC_SHA", "TLS_DH_DSS_EXPORT_WITH_DES40_CBC_SHA", "TLS_DH_DSS_WITH_DES_CBC_SHA", "TLS_DH_DSS_WITH_3DES_EDE_CBC_SHA", "TLS_DH_RSA_EXPORT_WITH_DES40_CBC_SHA", "TLS_DH_RSA_WITH_DES_CBC_SHA", "TLS_DH_RSA_WITH_3DES_EDE_CBC_SHA", "TLS_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA", "TLS_DHE_DSS_WITH_DES_CBC_SHA", "TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA", "TLS_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA", "TLS_DHE_RSA_WITH_DES_CBC_SHA", "TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA", "TLS_DH_anon_EXPORT_WITH_RC4_40_MD5", "TLS_DH_anon_WITH_RC4_128_MD5", "TLS_DH_anon_EXPORT_WITH_DES40_CBC_SHA", "TLS_DH_anon_WITH_DES_CBC_SHA", "TLS_DH_anon_WITH_3DES_EDE_CBC_SHA", "TLS_KRB5_WITH_DES_CBC_SHA", "TLS_KRB5_WITH_3DES_EDE_CBC_SHA", "TLS_KRB5_WITH_RC4_128_SHA", "TLS_KRB5_WITH_IDEA_CBC_SHA", "TLS_KRB5_WITH_DES_CBC_MD5", "TLS_KRB5_WITH_3DES_EDE_CBC_MD5", "TLS_KRB5_WITH_RC4_128_MD5", "TLS_KRB5_WITH_IDEA_CBC_MD5", "TLS_KRB5_EXPORT_WITH_DES_CBC_40_SHA", "TLS_KRB5_EXPORT_WITH_RC2_CBC_40_SHA", "TLS_KRB5_EXPORT_WITH_RC4_40_SHA", "TLS_KRB5_EXPORT_WITH_DES_CBC_40_MD5", "TLS_KRB5_EXPORT_WITH_RC2_CBC_40_MD5", "TLS_KRB5_EXPORT_WITH_RC4_40_MD5", "TLS_PSK_WITH_NULL_SHA", "TLS_DHE_PSK_WITH_NULL_SHA", "TLS_RSA_PSK_WITH_NULL_SHA", "TLS_RSA_WITH_AES_128_CBC_SHA", "TLS_DH_DSS_WITH_AES_128_CBC_SHA", "TLS_DH_RSA_WITH_AES_128_CBC_SHA", "TLS_DHE_DSS_WITH_AES_128_CBC_SHA", "TLS_DHE_RSA_WITH_AES_128_CBC_SHA", "TLS_DH_anon_WITH_AES_128_CBC_SHA", "TLS_RSA_WITH_AES_256_CBC_SHA", "TLS_DH_DSS_WITH_AES_256_CBC_SHA", "TLS_DH_RSA_WITH_AES_256_CBC_SHA", "TLS_DHE_DSS_WITH_AES_256_CBC_SHA", "TLS_DHE_RSA_WITH_AES_256_CBC_SHA", "TLS_DH_anon_WITH_AES_256_CBC_SHA", "TLS_RSA_WITH_NULL_SHA256", "TLS_RSA_WITH_AES_128_CBC_SHA256", "TLS_RSA_WITH_AES_256_CBC_SHA256", "TLS_DH_DSS_WITH_AES_128_CBC_SHA256", "TLS_DH_RSA_WITH_AES_128_CBC_SHA256", "TLS_DHE_DSS_WITH_AES_128_CBC_SHA256", "TLS_RSA_WITH_CAMELLIA_128_CBC_SHA", "TLS_DH_DSS_WITH_CAMELLIA_128_CBC_SHA", "TLS_DH_RSA_WITH_CAMELLIA_128_CBC_SHA", "TLS_DHE_DSS_WITH_CAMELLIA_128_CBC_SHA", "TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA", "TLS_DH_anon_WITH_CAMELLIA_128_CBC_SHA", "TLS_DHE_RSA_WITH_AES_128_CBC_SHA256", "TLS_DH_DSS_WITH_AES_256_CBC_SHA256", "TLS_DH_RSA_WITH_AES_256_CBC_SHA256", "TLS_DHE_DSS_WITH_AES_256_CBC_SHA256", "TLS_DHE_RSA_WITH_AES_256_CBC_SHA256", "TLS_DH_anon_WITH_AES_128_CBC_SHA256", "TLS_DH_anon_WITH_AES_256_CBC_SHA256", "TLS_RSA_WITH_CAMELLIA_256_CBC_SHA", "TLS_DH_DSS_WITH_CAMELLIA_256_CBC_SHA", "TLS_DH_RSA_WITH_CAMELLIA_256_CBC_SHA", "TLS_DHE_DSS_WITH_CAMELLIA_256_CBC_SHA", "TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA", "TLS_DH_anon_WITH_CAMELLIA_256_CBC_SHA", "TLS_PSK_WITH_RC4_128_SHA", "TLS_PSK_WITH_3DES_EDE_CBC_SHA", "TLS_PSK_WITH_AES_128_CBC_SHA", "TLS_PSK_WITH_AES_256_CBC_SHA", "TLS_DHE_PSK_WITH_RC4_128_SHA", "TLS_DHE_PSK_WITH_3DES_EDE_CBC_SHA", "TLS_DHE_PSK_WITH_AES_128_CBC_SHA", "TLS_DHE_PSK_WITH_AES_256_CBC_SHA", "TLS_RSA_PSK_WITH_RC4_128_SHA", "TLS_RSA_PSK_WITH_3DES_EDE_CBC_SHA", "TLS_RSA_PSK_WITH_AES_128_CBC_SHA", "TLS_RSA_PSK_WITH_AES_256_CBC_SHA", "TLS_RSA_WITH_SEED_CBC_SHA", "TLS_DH_DSS_WITH_SEED_CBC_SHA", "TLS_DH_RSA_WITH_SEED_CBC_SHA", "TLS_DHE_DSS_WITH_SEED_CBC_SHA", "TLS_DHE_RSA_WITH_SEED_CBC_SHA", "TLS_DH_anon_WITH_SEED_CBC_SHA", "TLS_RSA_WITH_AES_128_GCM_SHA256", "TLS_RSA_WITH_AES_256_GCM_SHA384", "TLS_DH_RSA_WITH_AES_128_GCM_SHA256", "TLS_DH_RSA_WITH_AES_256_GCM_SHA384", "TLS_DH_DSS_WITH_AES_128_GCM_SHA256", "TLS_DH_DSS_WITH_AES_256_GCM_SHA384", "TLS_DH_anon_WITH_AES_128_GCM_SHA256", "TLS_DH_anon_WITH_AES_256_GCM_SHA384", "TLS_PSK_WITH_AES_128_GCM_SHA256", "TLS_PSK_WITH_AES_256_GCM_SHA384", "TLS_RSA_PSK_WITH_AES_128_GCM_SHA256", "TLS_RSA_PSK_WITH_AES_256_GCM_SHA384", "TLS_PSK_WITH_AES_128_CBC_SHA256", "TLS_PSK_WITH_AES_256_CBC_SHA384", "TLS_PSK_WITH_NULL_SHA256", "TLS_PSK_WITH_NULL_SHA384", "TLS_DHE_PSK_WITH_AES_128_CBC_SHA256", "TLS_DHE_PSK_WITH_AES_256_CBC_SHA384", "TLS_DHE_PSK_WITH_NULL_SHA256", "TLS_DHE_PSK_WITH_NULL_SHA384", "TLS_RSA_PSK_WITH_AES_128_CBC_SHA256", "TLS_RSA_PSK_WITH_AES_256_CBC_SHA384", "TLS_RSA_PSK_WITH_NULL_SHA256", "TLS_RSA_PSK_WITH_NULL_SHA384", "TLS_RSA_WITH_CAMELLIA_128_CBC_SHA256", "TLS_DH_DSS_WITH_CAMELLIA_128_CBC_SHA256", "TLS_DH_RSA_WITH_CAMELLIA_128_CBC_SHA256", "TLS_DHE_DSS_WITH_CAMELLIA_128_CBC_SHA256", "TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA256", "TLS_DH_anon_WITH_CAMELLIA_128_CBC_SHA256", "TLS_RSA_WITH_CAMELLIA_256_CBC_SHA256", "TLS_DH_DSS_WITH_CAMELLIA_256_CBC_SHA256", "TLS_DH_RSA_WITH_CAMELLIA_256_CBC_SHA256", "TLS_DHE_DSS_WITH_CAMELLIA_256_CBC_SHA256", "TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA256", "TLS_DH_anon_WITH_CAMELLIA_256_CBC_SHA256", "TLS_EMPTY_RENEGOTIATION_INFO_SCSV", "TLS_ECDH_ECDSA_WITH_NULL_SHA", "TLS_ECDH_ECDSA_WITH_RC4_128_SHA", "TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA", "TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA", "TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA", "TLS_ECDHE_ECDSA_WITH_NULL_SHA", "TLS_ECDHE_ECDSA_WITH_RC4_128_SHA", "TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA", "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA", "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA", "TLS_ECDH_RSA_WITH_NULL_SHA", "TLS_ECDH_RSA_WITH_RC4_128_SHA", "TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA", "TLS_ECDH_RSA_WITH_AES_128_CBC_SHA", "TLS_ECDH_RSA_WITH_AES_256_CBC_SHA", "TLS_ECDHE_RSA_WITH_NULL_SHA", "TLS_ECDHE_RSA_WITH_RC4_128_SHA", "TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA", "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA", "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA", "TLS_ECDH_anon_WITH_NULL_SHA", "TLS_ECDH_anon_WITH_RC4_128_SHA", "TLS_ECDH_anon_WITH_3DES_EDE_CBC_SHA", "TLS_ECDH_anon_WITH_AES_128_CBC_SHA", "TLS_ECDH_anon_WITH_AES_256_CBC_SHA", "TLS_SRP_SHA_WITH_3DES_EDE_CBC_SHA", "TLS_SRP_SHA_RSA_WITH_3DES_EDE_CBC_SHA", "TLS_SRP_SHA_DSS_WITH_3DES_EDE_CBC_SHA", "TLS_SRP_SHA_WITH_AES_128_CBC_SHA", "TLS_SRP_SHA_RSA_WITH_AES_128_CBC_SHA", "TLS_SRP_SHA_DSS_WITH_AES_128_CBC_SHA", "TLS_SRP_SHA_WITH_AES_256_CBC_SHA", "TLS_SRP_SHA_RSA_WITH_AES_256_CBC_SHA", "TLS_SRP_SHA_DSS_WITH_AES_256_CBC_SHA", "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256", "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384", "TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA256", "TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA384", "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256", "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384", "TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256", "TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384", "TLS_ECDH_ECDSA_WITH_AES_128_GCM_SHA256", "TLS_ECDH_ECDSA_WITH_AES_256_GCM_SHA384", "TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256", "TLS_ECDH_RSA_WITH_AES_256_GCM_SHA384", "TLS_ECDHE_PSK_WITH_RC4_128_SHA", "TLS_ECDHE_PSK_WITH_3DES_EDE_CBC_SHA", "TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA", "TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA", "TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA256", "TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA384", "TLS_ECDHE_PSK_WITH_NULL_SHA", "TLS_ECDHE_PSK_WITH_NULL_SHA256", "TLS_ECDHE_PSK_WITH_NULL_SHA384", "TLS_RSA_WITH_ARIA_128_CBC_SHA256", "TLS_RSA_WITH_ARIA_256_CBC_SHA384", "TLS_DH_DSS_WITH_ARIA_128_CBC_SHA256", "TLS_DH_DSS_WITH_ARIA_256_CBC_SHA384", "TLS_DH_RSA_WITH_ARIA_128_CBC_SHA256", "TLS_DH_RSA_WITH_ARIA_256_CBC_SHA384", "TLS_DHE_DSS_WITH_ARIA_128_CBC_SHA256", "TLS_DHE_DSS_WITH_ARIA_256_CBC_SHA384", "TLS_DHE_RSA_WITH_ARIA_128_CBC_SHA256", "TLS_DHE_RSA_WITH_ARIA_256_CBC_SHA384", "TLS_DH_anon_WITH_ARIA_128_CBC_SHA256", "TLS_DH_anon_WITH_ARIA_256_CBC_SHA384", "TLS_ECDHE_ECDSA_WITH_ARIA_128_CBC_SHA256", "TLS_ECDHE_ECDSA_WITH_ARIA_256_CBC_SHA384", "TLS_ECDH_ECDSA_WITH_ARIA_128_CBC_SHA256", "TLS_ECDH_ECDSA_WITH_ARIA_256_CBC_SHA384", "TLS_ECDHE_RSA_WITH_ARIA_128_CBC_SHA256", "TLS_ECDHE_RSA_WITH_ARIA_256_CBC_SHA384", "TLS_ECDH_RSA_WITH_ARIA_128_CBC_SHA256", "TLS_ECDH_RSA_WITH_ARIA_256_CBC_SHA384", "TLS_RSA_WITH_ARIA_128_GCM_SHA256", "TLS_RSA_WITH_ARIA_256_GCM_SHA384", "TLS_DH_RSA_WITH_ARIA_128_GCM_SHA256", "TLS_DH_RSA_WITH_ARIA_256_GCM_SHA384", "TLS_DH_DSS_WITH_ARIA_128_GCM_SHA256", "TLS_DH_DSS_WITH_ARIA_256_GCM_SHA384", "TLS_DH_anon_WITH_ARIA_128_GCM_SHA256", "TLS_DH_anon_WITH_ARIA_256_GCM_SHA384", "TLS_ECDH_ECDSA_WITH_ARIA_128_GCM_SHA256", "TLS_ECDH_ECDSA_WITH_ARIA_256_GCM_SHA384", "TLS_ECDH_RSA_WITH_ARIA_128_GCM_SHA256", "TLS_ECDH_RSA_WITH_ARIA_256_GCM_SHA384", "TLS_PSK_WITH_ARIA_128_CBC_SHA256", "TLS_PSK_WITH_ARIA_256_CBC_SHA384", "TLS_DHE_PSK_WITH_ARIA_128_CBC_SHA256", "TLS_DHE_PSK_WITH_ARIA_256_CBC_SHA384", "TLS_RSA_PSK_WITH_ARIA_128_CBC_SHA256", "TLS_RSA_PSK_WITH_ARIA_256_CBC_SHA384", "TLS_PSK_WITH_ARIA_128_GCM_SHA256", "TLS_PSK_WITH_ARIA_256_GCM_SHA384", "TLS_RSA_PSK_WITH_ARIA_128_GCM_SHA256", "TLS_RSA_PSK_WITH_ARIA_256_GCM_SHA384", "TLS_ECDHE_PSK_WITH_ARIA_128_CBC_SHA256", "TLS_ECDHE_PSK_WITH_ARIA_256_CBC_SHA384", "TLS_ECDHE_ECDSA_WITH_CAMELLIA_128_CBC_SHA256", "TLS_ECDHE_ECDSA_WITH_CAMELLIA_256_CBC_SHA384", "TLS_ECDH_ECDSA_WITH_CAMELLIA_128_CBC_SHA256", "TLS_ECDH_ECDSA_WITH_CAMELLIA_256_CBC_SHA384", "TLS_ECDHE_RSA_WITH_CAMELLIA_128_CBC_SHA256", "TLS_ECDHE_RSA_WITH_CAMELLIA_256_CBC_SHA384", "TLS_ECDH_RSA_WITH_CAMELLIA_128_CBC_SHA256", "TLS_ECDH_RSA_WITH_CAMELLIA_256_CBC_SHA384", "TLS_RSA_WITH_CAMELLIA_128_GCM_SHA256", "TLS_RSA_WITH_CAMELLIA_256_GCM_SHA384", "TLS_DH_RSA_WITH_CAMELLIA_128_GCM_SHA256", "TLS_DH_RSA_WITH_CAMELLIA_256_GCM_SHA384", "TLS_DH_DSS_WITH_CAMELLIA_128_GCM_SHA256", "TLS_DH_DSS_WITH_CAMELLIA_256_GCM_SHA384", "TLS_DH_anon_WITH_CAMELLIA_128_GCM_SHA256", "TLS_DH_anon_WITH_CAMELLIA_256_GCM_SHA384", "TLS_ECDH_ECDSA_WITH_CAMELLIA_128_GCM_SHA256", "TLS_ECDH_ECDSA_WITH_CAMELLIA_256_GCM_SHA384", "TLS_ECDH_RSA_WITH_CAMELLIA_128_GCM_SHA256", "TLS_ECDH_RSA_WITH_CAMELLIA_256_GCM_SHA384", "TLS_PSK_WITH_CAMELLIA_128_GCM_SHA256", "TLS_PSK_WITH_CAMELLIA_256_GCM_SHA384", "TLS_RSA_PSK_WITH_CAMELLIA_128_GCM_SHA256", "TLS_RSA_PSK_WITH_CAMELLIA_256_GCM_SHA384", "TLS_PSK_WITH_CAMELLIA_128_CBC_SHA256", "TLS_PSK_WITH_CAMELLIA_256_CBC_SHA384", "TLS_DHE_PSK_WITH_CAMELLIA_128_CBC_SHA256", "TLS_DHE_PSK_WITH_CAMELLIA_256_CBC_SHA384", "TLS_RSA_PSK_WITH_CAMELLIA_128_CBC_SHA256", "TLS_RSA_PSK_WITH_CAMELLIA_256_CBC_SHA384", "TLS_ECDHE_PSK_WITH_CAMELLIA_128_CBC_SHA256", "TLS_ECDHE_PSK_WITH_CAMELLIA_256_CBC_SHA384", "TLS_RSA_WITH_AES_128_CCM", "TLS_RSA_WITH_AES_256_CCM", "TLS_RSA_WITH_AES_128_CCM_8", "TLS_RSA_WITH_AES_256_CCM_8", "TLS_PSK_WITH_AES_128_CCM", "TLS_PSK_WITH_AES_256_CCM", "TLS_PSK_WITH_AES_128_CCM_8", "TLS_PSK_WITH_AES_256_CCM_8");
-        sslContextFactory.setProtocol("TLSv1.2");
+        this.client = getHttpClient(transport, jaxrsClient, config);
 
         Map<String, Object> properties = config.getProperties();
         Boolean enableHostnameVerification = (Boolean) properties
                 .get(JettyClientProperties.ENABLE_SSL_HOSTNAME_VERIFICATION);
         if (Boolean.TRUE.equals(enableHostnameVerification)) {
-            sslContextFactory.setEndpointIdentificationAlgorithm("https");
+            client.getSslContextFactory().setEndpointIdentificationAlgorithm("https");
         }
-
-        this.client = new HttpClient(transport, sslContextFactory);
 
         final Object connectTimeout = properties.get(ClientProperties.CONNECT_TIMEOUT);
         if (isGreaterThanZero(connectTimeout)) {
@@ -170,17 +169,29 @@ public class JettyHttp2Connector implements Connector {
             auth.addAuthentication((BasicAuthentication) basicAuthProvider);
         }
 
-        final Object proxyUri = properties.get(ClientProperties.PROXY_URI);
-        if (proxyUri != null) {
-            final URI u = getProxyUri(proxyUri);
+        final Optional<ClientProxy> proxy = ClientProxy.proxyFromConfiguration(config);
+        proxy.ifPresent(clientProxy -> {
             final ProxyConfiguration proxyConfig = client.getProxyConfiguration();
+            final URI u = clientProxy.uri();
             proxyConfig.getProxies().add(new HttpProxy(u.getHost(), u.getPort()));
-        }
+
+            if (clientProxy.userName() != null) {
+                auth.addAuthentication(new BasicAuthentication(u, "<<ANY_REALM>>",
+                        clientProxy.userName(), clientProxy.password()));
+            }
+        });
 
         if (Boolean.TRUE.equals(properties.get(JettyClientProperties.DISABLE_COOKIES))) {
             client.setCookieStore(new HttpCookieStore.Empty());
         }
 
+        final Object slResponseMaxSize = config.getProperties()
+                .get(JettyClientProperties.SYNC_LISTENER_RESPONSE_MAX_SIZE);
+        if (isGreaterThanZero(slResponseMaxSize)) {
+            this.syncListenerResponseMaxSize = (Integer) slResponseMaxSize;
+        } else {
+            this.syncListenerResponseMaxSize = null;
+        }
         try {
             client.start();
         } catch (final Exception e) {
@@ -189,15 +200,19 @@ public class JettyHttp2Connector implements Connector {
         this.cookieStore = client.getCookieStore();
     }
 
-    @SuppressWarnings("ChainOfInstanceofChecks")
-    private static URI getProxyUri(final Object proxy) {
-        if (proxy instanceof URI) {
-            return (URI) proxy;
-        } else if (proxy instanceof String) {
-            return URI.create((String) proxy);
-        } else {
-            throw new ProcessingException(LocalizationMessages.WRONG_PROXY_URI_TYPE(ClientProperties.PROXY_URI));
+    private static HttpClient getHttpClient(HttpClientTransport transport, Client jaxrsClient, Configuration config) {
+        if (config.isRegistered(JettyHttpClientSupplier.class)) {
+            Optional<Object> contract = config.getInstances().stream()
+                    .filter(JettyHttpClientSupplier.class::isInstance).findFirst();
+            if (contract.isPresent()) {
+                return ((JettyHttpClientSupplier) contract.get()).getHttpClient();
+            }
         }
+
+        final SSLContext sslContext = jaxrsClient.getSslContext();
+        final SslContextFactory sslContextFactory = new SslContextFactory.Client();
+        sslContextFactory.setSslContext(sslContext);
+        return new HttpClient(transport, sslContextFactory);
     }
 
     private static void processResponseHeaders(final HttpFields respHeaders, final ClientResponse jerseyResponse) {
@@ -232,6 +247,7 @@ public class JettyHttp2Connector implements Connector {
         jerseyResponse.setEntityStream(entityStream);
         return jerseyResponse;
     }
+
     private boolean isGreaterThanZero(Object object) {
         return object instanceof Integer && (Integer) object > 0;
     }
@@ -266,25 +282,41 @@ public class JettyHttp2Connector implements Connector {
             jettyRequest.content(entity);
         }
 
+        final ContentResponse jettyResponse;
+        jettyResponse = send(jettyRequest);
+        HeaderUtils.checkHeaderChanges(clientHeadersSnapshot, jerseyRequest.getHeaders(),
+                JettyHttp2Connector.this.getClass().getName(), jerseyRequest.getConfiguration());
+
+        final javax.ws.rs.core.Response.StatusType status = jettyResponse.getReason() == null
+                ? Statuses.from(jettyResponse.getStatus())
+                : Statuses.from(jettyResponse.getStatus(), jettyResponse.getReason());
+
+        final ClientResponse jerseyResponse = new ClientResponse(status, jerseyRequest);
+        processResponseHeaders(jettyResponse.getHeaders(), jerseyResponse);
+        jerseyResponse.setEntityStream(new HttpClientResponseInputStream(jettyResponse));
+
+        return jerseyResponse;
+
+    }
+
+    private ContentResponse send(Request jettyRequest) {
+        final ContentResponse jettyResponse;
         try {
-            final ContentResponse jettyResponse = jettyRequest.send();
-            HeaderUtils.checkHeaderChanges(clientHeadersSnapshot, jerseyRequest.getHeaders(),
-                    JettyHttp2Connector.this.getClass().getName(), jerseyRequest.getConfiguration());
-
-            final javax.ws.rs.core.Response.StatusType status = jettyResponse.getReason() == null
-                    ? Statuses.from(jettyResponse.getStatus())
-                    : Statuses.from(jettyResponse.getStatus(), jettyResponse.getReason());
-
-            final ClientResponse jerseyResponse = new ClientResponse(status, jerseyRequest);
-            processResponseHeaders(jettyResponse.getHeaders(), jerseyResponse);
-
-            jerseyResponse.setEntityStream(new HttpClientResponseInputStream(jettyResponse));
-
-
-            return jerseyResponse;
+            if (syncListenerResponseMaxSize == null) {
+                jettyResponse = jettyRequest.send();
+            } else {
+                final FutureResponseListener listener
+                        = new FutureResponseListener(jettyRequest, syncListenerResponseMaxSize);
+                jettyRequest.send(listener);
+                jettyResponse = listener.get();
+            }
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new ProcessingException(e);
         } catch (final Exception e) {
             throw new ProcessingException(e);
         }
+        return jettyResponse;
     }
 
     private Request translateRequest(final ClientRequest clientRequest) {
@@ -298,8 +330,15 @@ public class JettyHttp2Connector implements Connector {
         if (isGreaterThanZero(readTimeout)) {
             request.timeout((Integer) readTimeout, TimeUnit.MILLISECONDS);
         }
+
+        final Integer totalTimeout = clientRequest.resolveProperty(JettyClientProperties.TOTAL_TIMEOUT, -1);
+        if (isGreaterThanZero(totalTimeout)) {
+            request.timeout(totalTimeout, TimeUnit.MILLISECONDS);
+        }
+
         return request;
     }
+
 
     private ContentProvider getBytesProvider(final ClientRequest clientRequest) {
         final Object entity = clientRequest.getEntity();
@@ -354,20 +393,19 @@ public class JettyHttp2Connector implements Connector {
         final AtomicBoolean callbackInvoked = new AtomicBoolean(false);
         final Throwable failure;
         try {
-            final CompletableFuture<ClientResponse> responseFuture =
-                    new CompletableFuture<ClientResponse>().whenComplete(
-                            (clientResponse, throwable) -> {
-                                if (throwable instanceof CancellationException) {
-                                    // take care of future cancellation
-                                    jettyRequest.abort(throwable);
+            final CompletableFuture<ClientResponse> responseFuture = new CompletableFuture<>();
+            responseFuture.whenComplete(
+                    (clientResponse, throwable) -> {
+                        if (throwable instanceof CancellationException) {
+                            // take care of future cancellation
+                            jettyRequest.abort(throwable);
 
-                                }
-                            });
-
+                        }
+                    });
 
             final AtomicReference<ClientResponse> jerseyResponse = new AtomicReference<>();
             // The stream is closed by another layer of JAX-RS
-            @SuppressWarnings("squid:S2095") final ByteBufferInputStream entityStream = new ByteBufferInputStream();
+            @SuppressWarnings({"squid:S2095", "resource"}) final ByteBufferInputStream entityStream = new ByteBufferInputStream();
             jettyRequest.send(new Response.Listener.Adapter() {
 
                 @Override
@@ -409,7 +447,9 @@ public class JettyHttp2Connector implements Connector {
                 @Override
                 public void onComplete(final Result result) {
                     entityStream.closeQueue();
-                    callback.response(jerseyResponse.get());
+                    if (!callbackInvoked.get()) {
+                        callback.response(jerseyResponse.get());
+                    }
                     responseFuture.complete(jerseyResponse.get());
                 }
 
@@ -437,6 +477,7 @@ public class JettyHttp2Connector implements Connector {
         return future;
     }
 
+
     @Override
     public String getName() {
         return "Jetty HttpClient " + Jetty.VERSION;
@@ -456,7 +497,6 @@ public class JettyHttp2Connector implements Connector {
 
         HttpClientResponseInputStream(final ContentResponse jettyResponse) {
             super(getInputStream(jettyResponse));
-
         }
 
         private static InputStream getInputStream(final ContentResponse response) {
