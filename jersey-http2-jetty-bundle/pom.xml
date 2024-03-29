@@ -5,7 +5,7 @@
     <parent>
         <artifactId>jersey-http2-jetty</artifactId>
         <groupId>com.github.nhenneaux.jersey.jetty.http2</groupId>
-        <version>1.0.17</version>
+        <version>1.0.18</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -78,7 +78,7 @@
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-slf4j2-impl</artifactId>
-            <version>2.20.0</version>
+            <version>2.23.1</version>
         </dependency>
 
         <dependency>
