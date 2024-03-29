@@ -3,13 +3,7 @@ package org.glassfish.jersey.jetty.connector;
 import org.eclipse.jetty.alpn.server.ALPNServerConnectionFactory;
 import org.eclipse.jetty.http.HttpVersion;
 import org.eclipse.jetty.http2.server.HTTP2ServerConnectionFactory;
-import org.eclipse.jetty.server.ConnectionFactory;
-import org.eclipse.jetty.server.HttpConfiguration;
-import org.eclipse.jetty.server.HttpConnectionFactory;
-import org.eclipse.jetty.server.SecureRequestCustomizer;
-import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.server.SslConnectionFactory;
+import org.eclipse.jetty.server.*;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.MultiException;
@@ -40,9 +34,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static org.hamcrest.CoreMatchers.anyOf;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -306,7 +298,8 @@ class Http2Test {
                         equalTo("java.util.concurrent.ExecutionException: org.eclipse.jetty.io.EofException"),
                         equalTo("java.util.concurrent.ExecutionException: org.eclipse.jetty.io.RuntimeIOException: javax.net.ssl.SSLHandshakeException: General SSLEngine problem"),
                         equalTo("java.util.concurrent.ExecutionException: javax.net.ssl.SSLHandshakeException: General SSLEngine problem"),
-                        equalTo("java.util.concurrent.ExecutionException: javax.net.ssl.SSLHandshakeException: PKIX path building failed: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested target")
+                        equalTo("java.util.concurrent.ExecutionException: javax.net.ssl.SSLHandshakeException: PKIX path building failed: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested target"),
+                        equalTo("java.util.concurrent.ExecutionException: javax.net.ssl.SSLHandshakeException: (certificate_unknown) PKIX path building failed: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested target")
                 ));
             }
         }
@@ -334,7 +327,8 @@ class Http2Test {
                     equalTo("java.util.concurrent.ExecutionException: java.io.IOException: Broken pipe"),
                     equalTo("java.util.concurrent.ExecutionException: org.eclipse.jetty.io.EofException"),
                     equalTo("java.util.concurrent.ExecutionException: javax.net.ssl.SSLHandshakeException: General SSLEngine problem"),
-                    equalTo("java.util.concurrent.ExecutionException: javax.net.ssl.SSLHandshakeException: PKIX path building failed: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested target")
+                    equalTo("java.util.concurrent.ExecutionException: javax.net.ssl.SSLHandshakeException: PKIX path building failed: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested target"),
+                    equalTo("java.util.concurrent.ExecutionException: javax.net.ssl.SSLHandshakeException: (certificate_unknown) PKIX path building failed: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested target")
                     )
             );
         }
