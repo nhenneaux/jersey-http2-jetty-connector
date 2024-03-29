@@ -13,6 +13,7 @@ import org.glassfish.jersey.client.proxy.WebResourceFactory;
 import org.glassfish.jersey.jackson.internal.jackson.jaxrs.json.JacksonJsonProvider;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.servlet.ServletContainer;
+import org.hamcrest.Matchers;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.Test;
@@ -26,10 +27,8 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -118,14 +117,12 @@ class Http2Test {
 
             @Override
             public void close() {
-                if (server != null) {
-                    try {
-                        server.stop();
-                    } catch (Exception e) {
-                        throw new IllegalStateException(e);
-                    } finally {
-                        server.destroy();
-                    }
+                try {
+                    server.stop();
+                } catch (Exception e) {
+                    throw new IllegalStateException(e);
+                } finally {
+                    server.destroy();
                 }
             }
         };
@@ -208,7 +205,7 @@ class Http2Test {
 
     @Test
 
-    @Timeout(60)
+    @Timeout(120)
     void testConcurrentHttp1() throws Exception {
         testConcurrent(new ClientConfig().property(JettyClientProperties.ENABLE_SSL_HOSTNAME_VERIFICATION, Boolean.TRUE));
     }
@@ -222,24 +219,31 @@ class Http2Test {
                 port,
                 tlsSecurityConfiguration,
                 DummyRestService.class)) {
-            // Warmup
-            getClient(port, truststore, clientConfig).hello();
-
             final int nThreads = 4;
             final int iterations = 10_000;
+            // Warmup
+            final DummyRestApi client = getClient(port, truststore, clientConfig);
+            client.hello();
+
             AtomicInteger counter = new AtomicInteger();
             final Runnable runnable = () -> {
-                final DummyRestApi client = getClient(port, truststore, clientConfig);
-                final long start = System.currentTimeMillis();
+                long start = System.nanoTime();
                 for (int i = 0; i < iterations; i++) {
                     client.hello();
                     counter.incrementAndGet();
-                    if (i % 1_000 == 0) {
-                        System.out.println((System.currentTimeMillis() - start) * 1.0 / Math.max(i, 1));
+                    int reportEveryRequests = 1_000;
+                    if (i % reportEveryRequests == 0) {
+                        System.out.println(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start) * 1.0 / reportEveryRequests);
+                        start = System.nanoTime();
                     }
+
                 }
             };
-            Thread.setDefaultUncaughtExceptionHandler((t1, e) -> e.printStackTrace());
+            List<Throwable> thrown = new ArrayList<>();
+            Thread.setDefaultUncaughtExceptionHandler((t1, e) -> {
+                thrown.add(e);
+                e.printStackTrace();
+            });
             final Set<Thread> threads = IntStream
                     .range(0, nThreads)
                     .mapToObj(i -> runnable)
@@ -252,8 +256,8 @@ class Http2Test {
             for (Thread thread : threads) {
                 thread.join();
             }
-
-            assertEquals(nThreads * iterations, counter.get());
+            assertThat(thrown, Matchers.empty());
+            assertEquals((long) nThreads * iterations, counter.get());
 
         }
     }

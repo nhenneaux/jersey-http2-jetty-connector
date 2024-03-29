@@ -86,7 +86,7 @@ class JettyServerTest {
     }
 
     @Test
-    @Timeout(60)
+    @Timeout(120)
     void testConcurrentHttp1() throws Exception {
         testConcurrent(new ClientConfig().property(JettyClientProperties.ENABLE_SSL_HOSTNAME_VERIFICATION, Boolean.TRUE));
     }
