@@ -9,6 +9,7 @@ import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.MultiException;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.glassfish.jersey.client.ClientConfig;
+import org.glassfish.jersey.client.HttpUrlConnectorProvider;
 import org.glassfish.jersey.client.proxy.WebResourceFactory;
 import org.glassfish.jersey.jackson.internal.jackson.jaxrs.json.JacksonJsonProvider;
 import org.glassfish.jersey.server.ResourceConfig;
@@ -209,13 +210,18 @@ class Http2Test {
     }
 
     @Test
-
     @Timeout(120)
-    void testConcurrentHttp1() throws Exception {
-        testConcurrent(new ClientConfig());
+    void testConcurrentJettyHttp1() throws Exception {
+        testConcurrent(new ClientConfig()
+                .connectorProvider(new JettyConnectorProvider()));
     }
 
-
+    @Test
+    @Timeout(120)
+    void testConcurrentHttpUrlConnectionHttp1() throws Exception {
+        testConcurrent(new ClientConfig()
+                .connectorProvider(new HttpUrlConnectorProvider()));
+    }
     private void testConcurrent(ClientConfig clientConfig) throws Exception {
         int port = PORT;
         TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
