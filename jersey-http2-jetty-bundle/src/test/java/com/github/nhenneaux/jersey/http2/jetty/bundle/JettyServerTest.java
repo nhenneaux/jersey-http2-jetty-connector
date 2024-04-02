@@ -1,7 +1,8 @@
 package com.github.nhenneaux.jersey.http2.jetty.bundle;
 
 import org.glassfish.jersey.client.ClientConfig;
-import org.glassfish.jersey.jetty.connector.JettyClientProperties;
+import org.glassfish.jersey.client.HttpUrlConnectorProvider;
+import org.glassfish.jersey.jetty.connector.JettyConnectorProvider;
 import org.glassfish.jersey.jetty.connector.JettyHttp2Connector;
 import org.hamcrest.Matchers;
 import org.jboss.weld.environment.se.Weld;
@@ -44,7 +45,6 @@ class JettyServerTest {
 
     private static ClientConfig http2ClientConfig() {
         return new ClientConfig()
-                .property(JettyClientProperties.ENABLE_SSL_HOSTNAME_VERIFICATION, Boolean.TRUE)
                 .connectorProvider(JettyHttp2Connector::new);
     }
 
@@ -87,10 +87,20 @@ class JettyServerTest {
 
     @Test
     @Timeout(120)
-    void testConcurrentHttp1() throws Exception {
-        testConcurrent(new ClientConfig().property(JettyClientProperties.ENABLE_SSL_HOSTNAME_VERIFICATION, Boolean.TRUE));
+    void testConcurrentJettyHttp1() throws Exception {
+        testConcurrent(new ClientConfig()
+                .connectorProvider(new JettyConnectorProvider()));
+
     }
 
+    @Test
+    @Timeout(120)
+    void testConcurrentHttpUrlConnectionHttp1() throws Exception {
+        if (!System.getProperty("os.name").toLowerCase().contains("mac")) { // Broken on MacOS with java.net.SocketException: Too many open files
+            testConcurrent(new ClientConfig()
+                    .connectorProvider(new HttpUrlConnectorProvider()));
+        }
+    }
 
     private void testConcurrent(ClientConfig clientConfig) throws Exception {
         int port = PORT;
