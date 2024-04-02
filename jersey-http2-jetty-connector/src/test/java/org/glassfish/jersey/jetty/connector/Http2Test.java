@@ -9,6 +9,7 @@ import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.MultiException;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.glassfish.jersey.client.ClientConfig;
+import org.glassfish.jersey.client.HttpUrlConnectorProvider;
 import org.glassfish.jersey.client.proxy.WebResourceFactory;
 import org.glassfish.jersey.jackson.internal.jackson.jaxrs.json.JacksonJsonProvider;
 import org.glassfish.jersey.server.ResourceConfig;
@@ -59,7 +60,6 @@ class Http2Test {
 
     private static ClientConfig http2ClientConfig() {
         return new ClientConfig()
-                .property(JettyClientProperties.ENABLE_SSL_HOSTNAME_VERIFICATION, Boolean.TRUE)
                 .connectorProvider(JettyHttp2Connector::new);
     }
 
@@ -69,8 +69,7 @@ class Http2Test {
                 ClientBuilder.newBuilder()
                         .register(new JacksonJsonProvider())
                         .trustStore(trustStore)
-                        .withConfig(configuration
-                        )
+                        .withConfig(configuration)
                         .build()
                         .target("https://localhost:" + port)
         );
@@ -82,12 +81,11 @@ class Http2Test {
 
             {
                 this.server = new Server();
-                ServerConnector http2Connector =
-                        new ServerConnector(server, getConnectionFactories(tlsSecurityConfiguration));
+                ServerConnector http2Connector = new ServerConnector(server, getConnectionFactories(tlsSecurityConfiguration));
                 http2Connector.setPort(port);
                 server.addConnector(http2Connector);
 
-                ServletContextHandler context = new ServletContextHandler(server, "/*", ServletContextHandler.GZIP);
+                ServletContextHandler context = new ServletContextHandler(server, "/");
 
                 ServletHolder servlet = new ServletHolder(new ServletContainer(new ResourceConfig() {
                     {
@@ -161,7 +159,15 @@ class Http2Test {
 
         sslContextFactory.setIncludeProtocols(tlsSecurityConfiguration.protocol);
         sslContextFactory.setProtocol(tlsSecurityConfiguration.protocol);
-        sslContextFactory.setIncludeCipherSuites("TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256", "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256");
+        sslContextFactory.setIncludeCipherSuites(
+                "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+                "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256",
+                "TLS_AES_128_CCM_8_SHA256",//TLSv1.3
+                "TLS_AES_128_CCM_SHA256",//TLSv1.3
+                "TLS_AES_128_GCM_SHA256",//TLSv1.3
+                "TLS_AES_256_GCM_SHA384",//TLSv1.3
+                "TLS_CHACHA20_POLY1305_SHA256"//TLSv1.3
+        );
 
         sslContextFactory.setExcludeProtocols(WEAK_PROTOCOLS.toArray(new String[0]));
 
@@ -204,12 +210,21 @@ class Http2Test {
     }
 
     @Test
-
     @Timeout(120)
-    void testConcurrentHttp1() throws Exception {
-        testConcurrent(new ClientConfig().property(JettyClientProperties.ENABLE_SSL_HOSTNAME_VERIFICATION, Boolean.TRUE));
+    void testConcurrentJettyHttp1() throws Exception {
+        testConcurrent(new ClientConfig()
+                .connectorProvider(new JettyConnectorProvider()));
+
     }
 
+    @Test
+    @Timeout(120)
+    void testConcurrentHttpUrlConnectionHttp1() throws Exception {
+        if (!System.getProperty("os.name").toLowerCase().contains("mac")) { // Broken on MacOS with java.net.SocketException: Too many open files
+            testConcurrent(new ClientConfig()
+                    .connectorProvider(new HttpUrlConnectorProvider()));
+        }
+    }
 
     private void testConcurrent(ClientConfig clientConfig) throws Exception {
         int port = PORT;
