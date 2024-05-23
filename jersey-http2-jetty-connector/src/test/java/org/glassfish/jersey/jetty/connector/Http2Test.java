@@ -57,7 +57,7 @@ class Http2Test {
     /**
      * Weak protocol that must be excluded from the TLS configuration.
      */
-    private static final List<String> WEAK_PROTOCOLS = Collections.unmodifiableList(Arrays.asList("SSL", "SSLv2", "SSLv2Hello", "SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2"));
+    private static final List<String> WEAK_PROTOCOLS = Collections.unmodifiableList(Arrays.asList("SSL", "SSLv2", "SSLv2Hello", "SSLv3", "TLSv1", "TLSv1.1"));
 
     private static DummyRestApi getClient(int port, KeyStore trustStore) {
         return getClient(port, trustStore, http2ClientConfig());
