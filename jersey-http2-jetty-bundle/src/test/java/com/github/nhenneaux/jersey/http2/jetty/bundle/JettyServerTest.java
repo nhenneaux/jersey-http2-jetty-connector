@@ -10,6 +10,7 @@ import org.jboss.weld.environment.se.WeldContainer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
+import javax.net.ServerSocketFactory;
 import javax.ws.rs.ProcessingException;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.WebTarget;
@@ -19,10 +20,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.KeyStore;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.IntPredicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -32,7 +37,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SuppressWarnings("squid:S00112")
 class JettyServerTest {
-    static final int PORT = 2223;
+    private static final Set<Integer> alreadyProvidedPort = Collections.newSetFromMap(new ConcurrentHashMap<>());
+
     private static final String PING = "/ping";
 
     private static WebTarget getClient(int port, KeyStore trustStore, ClientConfig clientConfig) {
@@ -65,10 +71,36 @@ class JettyServerTest {
         );
     }
 
+    /**
+     * Return an available (not used by another process) port between 49152 and 65535.
+     * Beware, that the port can be used by another thread between the check this method is doing and its usage by the caller. This means that this method only provide a light guarantee about the availability of the port.
+     *
+     * @return a port between 49152 and 65535
+     */
+    @SuppressWarnings({"findsecbugs:PREDICTABLE_RANDOM", "java:S2245"})
+    // "The use of java.util.concurrent.ThreadLocalRandom is predictable"
+    // This is not a cryptography/secure logic, so we ignore this warning
+    public static int findAvailablePort() {
+        final IntStream interval = ThreadLocalRandom.current().ints(49152, 65535);
+        return findAvailablePort(interval);
+    }
+
+    static int findAvailablePort(final IntStream interval) {
+        return findAvailablePort(interval, new AvailablePortTester());
+    }
+
+    static int findAvailablePort(final IntStream interval, final IntPredicate predicate) {
+        return interval
+                .filter(predicate)
+                .filter(alreadyProvidedPort::add)
+                .findFirst()
+                .orElseThrow(IllegalStateException::new);
+    }
+
     @Test
     @Timeout(20)
     void testValidTls() throws Exception {
-        int port = PORT;
+        int port = findAvailablePort();
         JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
         try (AutoCloseable ignored = jerseyServer(
                 port,
@@ -79,31 +111,8 @@ class JettyServerTest {
         }
     }
 
-    @Test
-    @Timeout(60)
-    void testConcurrent() throws Exception {
-        testConcurrent(http2ClientConfig());
-    }
-
-    @Test
-    @Timeout(120)
-    void testConcurrentJettyHttp1() throws Exception {
-        testConcurrent(new ClientConfig()
-                .connectorProvider(new JettyConnectorProvider()));
-
-    }
-
-    @Test
-    @Timeout(120)
-    void testConcurrentHttpUrlConnectionHttp1() throws Exception {
-        if (!System.getProperty("os.name").toLowerCase().contains("mac")) { // Broken on MacOS with java.net.SocketException: Too many open files
-            testConcurrent(new ClientConfig()
-                    .connectorProvider(new HttpUrlConnectorProvider()));
-        }
-    }
-
     private void testConcurrent(ClientConfig clientConfig) throws Exception {
-        int port = PORT;
+        int port = findAvailablePort();
         JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
         final KeyStore truststore = getKeyStore("TEST==ONLY==truststore-password".toCharArray(), "truststore.p12");
         try (AutoCloseable ignored = jerseyServer(
@@ -121,8 +130,8 @@ class JettyServerTest {
             final Runnable runnable = () -> {
                 long start = System.nanoTime();
                 for (int i = 0; i < iterations; i++) {
-                    try (Response response = webTarget.request().head()) {
-                        final InputStream inputStream = response.readEntity(InputStream.class);
+                    try (Response response = webTarget.request().head();
+                         final InputStream inputStream = response.readEntity(InputStream.class)) {
                         byte[] bytes = new byte[inputStream.available()];
                         DataInputStream dataInputStream = new DataInputStream(inputStream);
                         dataInputStream.readFully(bytes);
@@ -169,8 +178,31 @@ class JettyServerTest {
     }
 
     @Test
+    @Timeout(60)
+    void testConcurrent() throws Exception {
+        testConcurrent(http2ClientConfig());
+    }
+
+    @Test
+    @Timeout(120)
+    void testConcurrentJettyHttp1() throws Exception {
+        testConcurrent(new ClientConfig()
+                .connectorProvider(new JettyConnectorProvider()));
+
+    }
+
+    @Test
+    @Timeout(120)
+    void testConcurrentHttpUrlConnectionHttp1() throws Exception {
+        if (!System.getProperty("os.name").toLowerCase().contains("mac")) { // Broken on MacOS with java.net.SocketException: Too many open files
+            testConcurrent(new ClientConfig()
+                    .connectorProvider(new HttpUrlConnectorProvider()));
+        }
+    }
+
+    @Test
     void shouldWorkInLoop() throws Exception {
-        int port = PORT;
+        int port = findAvailablePort();
         JettyServer.TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
         for (int i = 0; i < 100; i++) {
             try (
@@ -181,6 +213,32 @@ class JettyServerTest {
                 assertEquals(204, head.getStatus());
             }
         }
+    }
+
+    static class AvailablePortTester implements IntPredicate {
+
+        private final ServerSocketFactory factory;
+
+        private AvailablePortTester() {
+            this(ServerSocketFactory.getDefault());
+        }
+
+        AvailablePortTester(final ServerSocketFactory factory) {
+            this.factory = factory;
+        }
+
+
+        @Override
+        @SuppressWarnings("squid:S1166")
+        public boolean test(final int port) {
+            try {
+                factory.createServerSocket(port).close();
+                return true;
+            } catch (IOException e) {
+                return false;
+            }
+        }
+
     }
 
 
