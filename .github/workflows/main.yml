@@ -18,8 +18,10 @@ jobs:
         include:
           - java: 8
             os: ubuntu-latest
+            experimental: false
           - java: 8
             os: windows-latest
+            experimental: false
           - java: 23-ea
             os: ubuntu-latest
             experimental: true
