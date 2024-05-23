@@ -309,6 +309,7 @@ class Http2Test {
     }
 
     @Test
+    @Timeout(60)
     void shouldWorkInLoop() throws Exception {
         int port = findAvailablePort();
         TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
@@ -324,7 +325,6 @@ class Http2Test {
     }
 
     @Test
-
     @Timeout(20)
     void testExpiredTls() throws Exception {
         int port = findAvailablePort();
@@ -385,6 +385,7 @@ class Http2Test {
     }
 
     @Test
+    @Timeout(60)
     void testNoTrustStoreTls() throws Exception {
         int port = findAvailablePort();
         TlsSecurityConfiguration tlsSecurityConfiguration = tlsConfig();
@@ -406,6 +407,7 @@ class Http2Test {
     }
 
     @Test
+    @Timeout(60)
     void testWrongPasswordTls() throws Exception {
         int port = findAvailablePort();
         TlsSecurityConfiguration tlsSecurityConfiguration = new TlsSecurityConfiguration(
@@ -428,6 +430,7 @@ class Http2Test {
     }
 
     @Test
+    @Timeout(60)
     void testDeprecatedTls() throws Exception {
         int port = findAvailablePort();
         TlsSecurityConfiguration tlsSecurityConfiguration = new TlsSecurityConfiguration(
