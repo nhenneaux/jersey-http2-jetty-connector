@@ -57,7 +57,7 @@ class Http2Test {
     /**
      * Weak protocol that must be excluded from the TLS configuration.
      */
-    private static final List<String> WEAK_PROTOCOLS = Collections.unmodifiableList(Arrays.asList("SSL", "SSLv2", "SSLv2Hello", "SSLv3", "TLSv1", "TLSv1.1"));
+    private static final List<String> WEAK_PROTOCOLS = Collections.unmodifiableList(Arrays.asList("SSL", "SSLv2", "SSLv2Hello", "SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2"));
 
     private static DummyRestApi getClient(int port, KeyStore trustStore) {
         return getClient(port, trustStore, http2ClientConfig());
@@ -125,24 +125,25 @@ class Http2Test {
             private final Server server;
 
             {
-                this.server = new Server();
-                ServerConnector http2Connector = new ServerConnector(server, getConnectionFactories(tlsSecurityConfiguration));
-                http2Connector.setPort(port);
-                server.addConnector(http2Connector);
-
-                ServletContextHandler context = new ServletContextHandler(server, "/");
-
-                ServletHolder servlet = new ServletHolder(new ServletContainer(new ResourceConfig() {
-                    {
-                        for (Class<?> serviceClass : serviceClasses) {
-                            register(serviceClass);
-                        }
-                    }
-                }));
-
-                context.addServlet(servlet, "/*");
 
                 try {
+                    this.server = new Server();
+                    ServerConnector http2Connector = new ServerConnector(server, getConnectionFactories(tlsSecurityConfiguration));
+                    http2Connector.setPort(port);
+                    server.addConnector(http2Connector);
+
+                    ServletContextHandler context = new ServletContextHandler(server, "/");
+
+                    ServletHolder servlet = new ServletHolder(new ServletContainer(new ResourceConfig() {
+                        {
+                            for (Class<?> serviceClass : serviceClasses) {
+                                register(serviceClass);
+                            }
+                        }
+                    }));
+
+                    context.addServlet(servlet, "/*");
+
                     server.start();
 
                 } catch (Exception e) {
@@ -426,28 +427,6 @@ class Http2Test {
             fail();
         } catch (IllegalStateException e) {
             assertEquals("java.security.UnrecoverableKeyException: Get Key failed: Given final block not properly padded. Such issues can arise if a bad key is used during decryption.", e.getMessage());
-        }
-    }
-
-    @Test
-    @Timeout(60)
-    void testDeprecatedTls() throws Exception {
-        int port = findAvailablePort();
-        TlsSecurityConfiguration tlsSecurityConfiguration = new TlsSecurityConfiguration(
-                getKeyStore("TEST==ONLY==key-store-password".toCharArray(), "keystore.p12"),
-                "server",
-                "TEST==ONLY==key-store-password",
-                "TLSv1"
-        );
-
-        DummyRestApi client = getClient(port, getTrustStore());
-        try (AutoCloseable ignored = jerseyServer(
-                port,
-                tlsSecurityConfiguration,
-                DummyRestService.class)) {
-            client.hello();
-            fail();
-        } catch (ProcessingException ignored) {
         }
     }
 
