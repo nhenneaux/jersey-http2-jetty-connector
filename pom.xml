@@ -195,7 +195,7 @@
                             <goal>sign</goal>
                         </goals>
                         <configuration>
-                            <keyname>8C334D53759C56CAFF1B5E9BBE0ED98B46B1B2EA</keyname>
+                            <keyname>49A190634782F9EF41B285A460440EA3116337CE</keyname>
                             <!-- Configuration to prevent the 'Signing Prompt' or the  -->
                             <!-- 'gpg: signing failed: No such file or directory' error -->
                             <!-- See https://myshittycode.com/2017/08/07/maven-gpg-plugin-prevent-signing-prompt-or-gpg-signing-failed-no-such-file-or-directory-error/ -->
@@ -227,7 +227,7 @@
                 <plugin>
                     <groupId>org.jacoco</groupId>
                     <artifactId>jacoco-maven-plugin</artifactId>
-                    <version>0.8.11</version>
+                    <version>0.8.12</version>
                 </plugin>
                 <plugin>
                     <artifactId>maven-gpg-plugin</artifactId>
