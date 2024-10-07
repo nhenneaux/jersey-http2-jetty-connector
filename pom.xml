@@ -6,7 +6,7 @@
 
     <groupId>com.github.nhenneaux.jersey.jetty.http2</groupId>
     <artifactId>jersey-http2-jetty</artifactId>
-    <version>1.0.19</version>
+    <version>1.0.20</version>
 
     <packaging>pom</packaging>
 
@@ -28,8 +28,8 @@
 
         <skipRelease>true</skipRelease>
 
-        <jersey.version>2.43</jersey.version>
-        <jetty.version>9.4.54.v20240208</jetty.version>
+        <jersey.version>2.45</jersey.version>
+        <jetty.version>9.4.56.v20240826</jetty.version>
 
         <jakarta.activation.version>1.2.2</jakarta.activation.version>
         <jakarta.annotation.version>1.3.5</jakarta.annotation.version>
@@ -47,7 +47,7 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <version>5.10.2</version>
+            <version>5.11.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>
