@@ -6,10 +6,11 @@
     <parent>
         <groupId>com.github.nhenneaux.jersey.jetty.http2</groupId>
         <artifactId>jersey-http2-jetty</artifactId>
-        <version>1.0.20</version>
+        <version>1.0.21</version>
     </parent>
 
     <artifactId>jersey-http2-jetty-connector</artifactId>
+    <name>jersey-http2-jetty-connector</name>
 
     <dependencies>
         <dependency>
