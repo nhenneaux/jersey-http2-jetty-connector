@@ -32,7 +32,7 @@
         <jetty.version>9.4.58.v20250814</jetty.version>
 
         <jakarta.activation.version>1.2.2</jakarta.activation.version>
-        <jakarta.annotation.version>1.3.5</jakarta.annotation.version>
+        <jakarta.annotation.version>3.0.0</jakarta.annotation.version>
         <jakarta.xml.bind.version>2.3.3</jakarta.xml.bind.version>
         <jakarta.el-api.version>3.0.4</jakarta.el-api.version>
     </properties>
